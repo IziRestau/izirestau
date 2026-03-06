@@ -1,0 +1,8 @@
+export { ProfileSettings } from './ProfileSettings'
+export { RestaurantInfoSettings } from './RestaurantInfoSettings'
+export { OpeningHoursSettings } from './OpeningHoursSettings'
+export { OrderSettings } from './OrderSettings'
+export { PaymentSettings } from './PaymentSettings'
+export { DeliverySettings } from './DeliverySettings'
+export { ThemeSettings } from './ThemeSettings'
+export { SecuritySettings } from './SecuritySettings'

@@ -1,0 +1,5 @@
+export { GeneralMarketingSettings } from './GeneralMarketingSettings'
+export { LoyaltySettings } from './LoyaltySettings'
+export { NotificationSettings } from './NotificationSettings'
+export { EmailTemplatesSettings } from './EmailTemplatesSettings'
+export { TagRulesSettings } from './TagRulesSettings'

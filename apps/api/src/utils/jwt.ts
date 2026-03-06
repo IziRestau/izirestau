@@ -1,0 +1,46 @@
+import jwt from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret'
+
+export interface TokenPayload {
+  userId: string
+  email: string
+  userType: string
+}
+
+export function generateAccessToken(payload: TokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' })
+}
+
+export function generateRefreshToken(payload: TokenPayload): string {
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: '7d' })
+}
+
+export function verifyAccessToken(token: string): TokenPayload {
+  return jwt.verify(token, JWT_SECRET) as TokenPayload
+}
+
+export function verifyRefreshToken(token: string): TokenPayload {
+  return jwt.verify(token, JWT_REFRESH_SECRET) as TokenPayload
+}
+
+export function generateTokens(payload: TokenPayload) {
+  return {
+    accessToken: generateAccessToken(payload),
+    refreshToken: generateRefreshToken(payload),
+  }
+}
+
+export interface TempTokenPayload {
+  userId: string
+  purpose: '2fa'
+}
+
+export function generateTempToken(payload: TempTokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '5m' })
+}
+
+export function verifyTempToken(token: string): TempTokenPayload {
+  return jwt.verify(token, JWT_SECRET) as TempTokenPayload
+}

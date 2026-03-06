@@ -1,0 +1,108 @@
+import type { ThemeSectionDef } from '../../../_types'
+
+export const customImageTextSection: ThemeSectionDef = {
+  id: 'imageText',
+  label: 'Image + Texte',
+  description: 'Section avec une image et du texte côte à côte',
+  fields: [
+    {
+      key: 'enabled',
+      label: 'Activer cette section',
+      type: 'switch',
+      defaultValue: false,
+    },
+    {
+      key: 'imagePosition',
+      label: 'Position de l\'image',
+      type: 'select',
+      defaultValue: 'left',
+      options: [
+        { value: 'left', label: 'Image à gauche' },
+        { value: 'right', label: 'Image à droite' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'image',
+      label: 'Image',
+      type: 'image',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'imageRounded',
+      label: 'Arrondi de l\'image',
+      type: 'select',
+      defaultValue: 'xl',
+      options: [
+        { value: 'none', label: 'Aucun' },
+        { value: 'lg', label: 'Léger' },
+        { value: 'xl', label: 'Moyen' },
+        { value: '2xl', label: 'Fort' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'title',
+      label: 'Titre',
+      type: 'text',
+      placeholder: 'Titre de la section',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'text',
+      label: 'Texte',
+      type: 'textarea',
+      placeholder: 'Décrivez cette section...',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'showButton',
+      label: 'Afficher un bouton',
+      type: 'switch',
+      defaultValue: false,
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'buttonText',
+      label: 'Texte du bouton',
+      type: 'text',
+      placeholder: 'En savoir plus',
+      defaultValue: 'En savoir plus',
+      showWhen: { field: 'showButton', value: true },
+    },
+    {
+      key: 'buttonIcon',
+      label: 'Icone du bouton',
+      type: 'icon',
+      description: 'Icone affichée dans le bouton (par défaut : flèche)',
+      showWhen: { field: 'showButton', value: true },
+    },
+    {
+      key: 'buttonLink',
+      label: 'Lien du bouton',
+      type: 'text',
+      placeholder: '/menu ou https://...',
+      showWhen: { field: 'showButton', value: true },
+    },
+    {
+      key: 'bgColor',
+      label: 'Couleur de fond',
+      type: 'color',
+      description: 'Laissez vide pour un fond transparent',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'paddingY',
+      label: 'Espacement vertical',
+      type: 'select',
+      defaultValue: 'lg',
+      options: [
+        { value: 'sm', label: 'Petit' },
+        { value: 'md', label: 'Moyen' },
+        { value: 'lg', label: 'Grand' },
+        { value: 'xl', label: 'Très grand' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+  ],
+}

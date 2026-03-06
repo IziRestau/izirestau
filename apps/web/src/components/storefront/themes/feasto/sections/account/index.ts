@@ -1,0 +1,5 @@
+export { AccountHeaderSection } from './AccountHeaderSection'
+export { AccountDashboardSection } from './AccountDashboardSection'
+export { AccountOrdersTab } from './AccountOrdersTab'
+export { AccountProfileTab } from './AccountProfileTab'
+export { AccountAddressesTab } from './AccountAddressesTab'

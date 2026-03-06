@@ -1,0 +1,196 @@
+# IziResto - Règles Globales du Projet
+
+## Contexte
+IziResto est une plateforme SaaS B2B2C multi-tenant pour revendeurs de solutions restaurant.
+- **Frontend**: apps/web (Next.js 14)
+- **Backend**: apps/api (Express.js)
+- **Database**: packages/database (Prisma)
+
+---
+
+## Règles Absolues
+
+### Code
+- TypeScript strict partout, jamais de `any`
+- Imports toujours en haut du fichier
+- Pas de code dupliqué - créer composant/util réutilisable
+- Supprimer les console.log de debug avant commit
+- Pas d'emojis dans le code, utiliser Lucide icons
+
+### Composants
+- Un composant = une responsabilité
+- Props typées avec interface dédiée
+- Utiliser shadcn/ui en priorité
+- Créer dans packages/ui si réutilisable cross-dashboard
+- Créer dans apps/web/src/components/[domain] si spécifique
+
+### Styles
+- Tailwind CSS uniquement, pas de CSS custom sauf exception
+- Utiliser les classes utilitaires existantes
+- Respecter le design system (couleurs, espacements, typo)
+- Mobile-first responsive
+
+### API
+- Routes RESTful cohérentes
+- Validation Zod sur toutes les entrées
+- Gestion d'erreurs centralisée
+- Réponses JSON standardisées: `{ success, data, error, message }`
+
+### Base de Données
+- Migrations Prisma pour tout changement de schema
+- Jamais de raw SQL sauf optimisation critique
+- Index sur les champs fréquemment requêtés
+- Soft delete quand pertinent (isActive, deletedAt)
+
+### Sécurité
+- JWT pour auth, refresh tokens
+- Validation côté serveur obligatoire
+- Sanitization des inputs
+- Rate limiting sur endpoints sensibles
+- CORS configuré strictement
+
+### Git
+- Commits conventionnels: feat|fix|refactor|docs|chore(scope): message
+- Une feature = une branche
+- PR review avant merge
+- Pas de commit direct sur main
+
+---
+
+## Structure des Fichiers
+
+### Frontend (apps/web)
+```
+src/
+├── app/                    # Routes Next.js App Router
+│   ├── (auth)/            # Auth pages (login, register)
+│   ├── platform/          # Dashboard Super Admin
+│   ├── reseller/          # Dashboard Revendeur
+│   ├── restaurant/        # Dashboard Restaurant
+│   ├── driver/            # App Livreur
+│   └── store/[subdomain]/ # Storefront client
+├── components/
+│   ├── ui/                # shadcn/ui components
+│   ├── shared/            # Composants partagés
+│   ├── platform/          # Composants Super Admin
+│   ├── reseller/          # Composants Revendeur
+│   ├── restaurant/        # Composants Restaurant
+│   └── storefront/        # Composants Storefront
+├── hooks/                 # Custom hooks
+├── lib/                   # Utils, api-client, auth
+├── stores/                # Zustand stores
+└── types/                 # Types TypeScript
+```
+
+### Backend (apps/api)
+```
+src/
+├── routes/                # Express routes
+│   ├── auth.routes.ts
+│   ├── platform/          # Routes Super Admin
+│   ├── reseller/          # Routes Revendeur
+│   ├── restaurant/        # Routes Restaurant
+│   └── public/            # Routes publiques (storefront)
+├── controllers/           # Logique métier
+├── middlewares/           # Auth, validation, error handling
+├── services/              # Services externes (email, storage, payments)
+├── validators/            # Schemas Zod
+├── utils/                 # Helpers
+└── types/                 # Types
+```
+
+---
+
+## Conventions de Nommage
+
+| Type | Convention | Exemple |
+|------|------------|---------|
+| Composants | PascalCase | `SiteCard.tsx` |
+| Hooks | camelCase avec use | `useSites.ts` |
+| Utils | camelCase | `formatCurrency.ts` |
+| Types/Interfaces | PascalCase | `interface Site {}` |
+| Constants | SCREAMING_SNAKE | `MAX_SITES_PER_LICENSE` |
+| Routes API | kebab-case | `/api/reseller/sites` |
+| Fichiers routes | kebab-case | `sites.routes.ts` |
+| Variables | camelCase | `const siteCount = 5` |
+| Enums | PascalCase | `enum SiteStatus {}` |
+
+---
+
+## Patterns Obligatoires
+
+### Fetching Data (Frontend)
+```typescript
+// Utiliser TanStack Query
+const { data, isLoading, error } = useQuery({
+  queryKey: ['sites', organizationId],
+  queryFn: () => api.reseller.getSites(),
+})
+```
+
+### Mutations (Frontend)
+```typescript
+const mutation = useMutation({
+  mutationFn: api.reseller.createSite,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['sites'] })
+    toast.success('Site créé')
+  },
+})
+```
+
+### Formulaires (Frontend)
+```typescript
+const form = useForm<CreateSiteInput>({
+  resolver: zodResolver(createSiteSchema),
+  defaultValues: { subdomain: '' },
+})
+```
+
+### API Response (Backend)
+```typescript
+// Succès
+res.json({ success: true, data: sites })
+
+// Erreur
+res.status(400).json({ success: false, error: 'INVALID_INPUT', message: 'Subdomain requis' })
+```
+
+### Validation (Backend)
+```typescript
+const createSiteSchema = z.object({
+  subdomain: z.string().min(3).max(50).regex(/^[a-z0-9-]+$/),
+  clientId: z.string().cuid().optional(),
+})
+```
+
+---
+
+## Performance
+
+- Lazy loading des routes avec `next/dynamic`
+- Images optimisées avec `next/image`
+- Pagination sur toutes les listes (limit 20 par défaut)
+- Cache TanStack Query (staleTime: 5min pour données stables)
+- Debounce sur recherches (300ms)
+- Virtualisation pour longues listes (TanStack Virtual)
+
+---
+
+## Accessibilité
+
+- Labels sur tous les inputs
+- Focus visible
+- Contraste suffisant (WCAG AA)
+- Navigation clavier
+- aria-labels sur éléments interactifs
+- Utiliser composants Radix/shadcn (accessibles par défaut)
+
+---
+
+## Internationalisation
+
+- Textes dans `messages/fr.json` et `messages/en.json`
+- Utiliser `useTranslations()` de next-intl
+- Format dates avec date-fns et locale
+- Devises formatées selon locale

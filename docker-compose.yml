@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: iziresto-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: iziresto
+      POSTGRES_PASSWORD: iziresto_dev_2024
+      POSTGRES_DB: iziresto
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U iziresto -d iziresto']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: iziresto-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@iziresto.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    ports:
+      - '5050:80'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin-servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  maildev:
+    image: maildev/maildev:latest
+    container_name: iziresto-maildev
+    restart: unless-stopped
+    ports:
+      - '1080:1080'
+      - '1025:1025'
+
+volumes:
+  postgres_data:
+  pgadmin_data:

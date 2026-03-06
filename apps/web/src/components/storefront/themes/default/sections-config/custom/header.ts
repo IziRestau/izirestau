@@ -1,0 +1,96 @@
+import type { ThemeSectionDef } from '../../../_types'
+
+export const customHeaderSection: ThemeSectionDef = {
+  id: 'header',
+  label: 'Bannière',
+  description: 'Section bannière en haut de la page',
+  fields: [
+    {
+      key: 'enabled',
+      label: 'Activer cette section',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'bgType',
+      label: 'Type d\'arrière-plan',
+      type: 'select',
+      defaultValue: 'color',
+      options: [
+        { value: 'image', label: 'Image' },
+        { value: 'gradient', label: 'Dégradé' },
+        { value: 'color', label: 'Couleur unie' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'bgImage',
+      label: 'Image d\'arrière-plan',
+      type: 'image',
+      showWhen: { field: 'bgType', value: 'image' },
+    },
+    {
+      key: 'bgColor',
+      label: 'Couleur de fond',
+      type: 'color',
+      description: 'Couleur unie pour le fond de la bannière',
+      showWhen: { field: 'bgType', value: 'color' },
+    },
+    {
+      key: 'gradientFrom',
+      label: 'Couleur de départ',
+      type: 'color',
+      showWhen: { field: 'bgType', value: 'gradient' },
+    },
+    {
+      key: 'gradientTo',
+      label: 'Couleur d\'arrivée',
+      type: 'color',
+      showWhen: { field: 'bgType', value: 'gradient' },
+    },
+    {
+      key: 'overlayOpacity',
+      label: 'Opacité de l\'overlay',
+      type: 'slider',
+      defaultValue: 40,
+      min: 0,
+      max: 100,
+      step: 5,
+      showWhen: { field: 'bgType', value: 'image' },
+    },
+    {
+      key: 'minHeight',
+      label: 'Hauteur',
+      type: 'select',
+      defaultValue: '200px',
+      options: [
+        { value: '150px', label: 'Petite' },
+        { value: '200px', label: 'Moyenne' },
+        { value: '300px', label: 'Grande' },
+        { value: '400px', label: 'Très grande' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'showTitle',
+      label: 'Afficher le titre de la page',
+      type: 'switch',
+      defaultValue: true,
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'subtitle',
+      label: 'Sous-titre',
+      type: 'text',
+      placeholder: 'Un sous-titre optionnel',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'textColor',
+      label: 'Couleur du texte',
+      type: 'color',
+      description: 'Par défaut : blanc sur image/dégradé, sombre sur couleur unie',
+      showWhen: { field: 'enabled', value: true },
+    },
+  ],
+}

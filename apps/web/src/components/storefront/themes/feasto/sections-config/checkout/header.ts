@@ -1,0 +1,113 @@
+import type { ThemeSectionDef } from '../../../_types'
+
+export const headerSection: ThemeSectionDef = {
+  id: 'header',
+  label: 'En-tête checkout',
+  description: 'Bannière héro en haut de la page de commande',
+  fields: [
+    {
+      key: 'enabled',
+      label: 'Activer la section',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'separatorContent',
+      label: 'Contenu',
+      type: 'separator',
+    },
+    {
+      key: 'title',
+      label: 'Titre',
+      type: 'text',
+      placeholder: 'Finaliser la commande',
+      defaultValue: 'Finaliser la commande',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'subtitle',
+      label: 'Sous-titre',
+      type: 'text',
+      placeholder: 'Vérifiez votre commande et choisissez vos options',
+      defaultValue: 'Vérifiez votre commande et choisissez vos options',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'separatorNavigation',
+      label: 'Navigation',
+      type: 'separator',
+    },
+    {
+      key: 'showBackLink',
+      label: 'Afficher le lien retour',
+      type: 'switch',
+      defaultValue: true,
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'backLinkText',
+      label: 'Texte du lien retour',
+      type: 'text',
+      placeholder: 'Menu',
+      defaultValue: 'Menu',
+      showWhen: { field: 'showBackLink', value: true },
+    },
+    {
+      key: 'separatorBackground',
+      label: 'Arrière-plan',
+      type: 'separator',
+    },
+    {
+      key: 'bgType',
+      label: 'Type de fond',
+      type: 'select',
+      defaultValue: 'image',
+      options: [
+        { value: 'image', label: 'Image' },
+        { value: 'gradient', label: 'Dégradé' },
+        { value: 'none', label: 'Aucun (couleur de fond)' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'bgImage',
+      label: 'Image de fond',
+      type: 'image',
+      showWhen: { field: 'bgType', value: 'image' },
+    },
+    {
+      key: 'overlayOpacity',
+      label: 'Opacité de l\'overlay',
+      type: 'slider',
+      min: 0,
+      max: 100,
+      step: 5,
+      defaultValue: 60,
+      showWhen: { field: 'bgType', value: 'image' },
+    },
+    {
+      key: 'gradientFrom',
+      label: 'Couleur de départ',
+      type: 'color',
+      showWhen: { field: 'bgType', value: 'gradient' },
+    },
+    {
+      key: 'gradientTo',
+      label: 'Couleur d\'arrivée',
+      type: 'color',
+      showWhen: { field: 'bgType', value: 'gradient' },
+    },
+    {
+      key: 'minHeight',
+      label: 'Hauteur minimale',
+      type: 'select',
+      defaultValue: '30vh',
+      options: [
+        { value: '20vh', label: 'Petite (20vh)' },
+        { value: '30vh', label: 'Moyenne (30vh)' },
+        { value: '40vh', label: 'Grande (40vh)' },
+      ],
+      showWhen: { field: 'enabled', value: true },
+    },
+  ],
+}

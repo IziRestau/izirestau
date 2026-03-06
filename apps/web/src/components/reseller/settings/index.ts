@@ -1,0 +1,8 @@
+export { ProfileSettings } from './ProfileSettings'
+export { OrganizationSettings } from './OrganizationSettings'
+export { BrandingSettings } from './BrandingSettings'
+export { TeamSettings } from './TeamSettings'
+export { SecuritySettings } from './SecuritySettings'
+export { NotificationsSettings } from './NotificationsSettings'
+export { DomainSettings } from './DomainSettings'
+export { PaymentSettings } from './PaymentSettings'

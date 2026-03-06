@@ -1,0 +1,71 @@
+import type { ThemeSectionDef } from '../../../_types'
+
+export const heroSection: ThemeSectionDef = {
+  id: 'hero',
+  label: 'Hero du menu',
+  description: 'Bannière en haut de la page menu avec effet 3 panneaux',
+  fields: [
+    {
+      key: 'enabled',
+      label: 'Activer la section',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'label',
+      label: 'Label',
+      type: 'text',
+      placeholder: 'Menu',
+      defaultValue: 'Menu',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'title',
+      label: 'Titre',
+      type: 'text',
+      placeholder: 'Explorez notre menu',
+      defaultValue: 'Explorez notre menu',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'subtitle',
+      label: 'Sous-titre',
+      type: 'text',
+      placeholder: 'Préparé avec soin chaque jour',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'backgroundImage',
+      label: 'Image de fond',
+      type: 'image',
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'overlayOpacity',
+      label: 'Opacité de l\'overlay',
+      type: 'slider',
+      min: 0,
+      max: 100,
+      step: 5,
+      defaultValue: 60,
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'blurAmount',
+      label: 'Intensité du flou',
+      type: 'slider',
+      min: 0,
+      max: 20,
+      step: 1,
+      defaultValue: 8,
+      showWhen: { field: 'enabled', value: true },
+    },
+    {
+      key: 'showScrollDown',
+      label: 'Bouton de défilement',
+      type: 'switch',
+      defaultValue: true,
+      showWhen: { field: 'enabled', value: true },
+    },
+  ],
+}

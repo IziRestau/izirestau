@@ -1,0 +1,6 @@
+export { GeneralSettings } from './GeneralSettings'
+export { PermalinksSettings } from './PermalinksSettings'
+export { SeoSettings } from './SeoSettings'
+export { ConversionSettings } from './ConversionSettings'
+export { DomainSettings } from './DomainSettings'
+export { LegalSettings } from './LegalSettings'

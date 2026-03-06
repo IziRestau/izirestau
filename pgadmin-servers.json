@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "IziResto DB",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "iziresto",
+      "Username": "iziresto",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpass"
+    }
+  }
+}

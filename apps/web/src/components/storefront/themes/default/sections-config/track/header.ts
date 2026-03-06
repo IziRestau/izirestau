@@ -1,0 +1,121 @@
+import type { ThemeSectionDef } from '../../../_types'
+
+export const trackHeaderSection: ThemeSectionDef = {
+  id: 'header',
+  label: 'En-tête de suivi',
+  description: 'Affichage du statut et des informations principales',
+  fields: [
+    {
+      key: 'enabled',
+      label: 'Activer cette section',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'separatorBackground',
+      label: 'Arrière-plan',
+      type: 'separator',
+    },
+    {
+      key: 'bgType',
+      label: 'Type d\'arrière-plan',
+      type: 'select',
+      defaultValue: 'image',
+      options: [
+        { value: 'image', label: 'Image' },
+        { value: 'gradient', label: 'Dégradé de couleurs' },
+        { value: 'none', label: 'Aucun (fond uni)' },
+      ],
+    },
+    {
+      key: 'bgImage',
+      label: 'Image d\'arrière-plan',
+      type: 'image',
+      description: 'Uploadez une image personnalisée (sinon l\'image de couverture du restaurant sera utilisée)',
+      showWhen: { field: 'bgType', value: 'image' },
+    },
+    {
+      key: 'gradientFrom',
+      label: 'Couleur de départ du dégradé',
+      type: 'color',
+      showWhen: { field: 'bgType', value: 'gradient' },
+    },
+    {
+      key: 'gradientTo',
+      label: 'Couleur d\'arrivée du dégradé',
+      type: 'color',
+      showWhen: { field: 'bgType', value: 'gradient' },
+    },
+    {
+      key: 'overlayOpacity',
+      label: 'Opacité de l\'overlay',
+      type: 'slider',
+      defaultValue: 60,
+      min: 0,
+      max: 100,
+      step: 5,
+      description: 'Assombrir l\'arrière-plan pour améliorer la lisibilité',
+      showWhen: { field: 'bgType', value: 'image' },
+    },
+    {
+      key: 'minHeight',
+      label: 'Hauteur minimale',
+      type: 'select',
+      defaultValue: '40vh',
+      options: [
+        { value: '30vh', label: 'Compacte (30%)' },
+        { value: '40vh', label: 'Moyenne (40%)' },
+        { value: '50vh', label: 'Grande (50%)' },
+      ],
+    },
+    {
+      key: 'separatorNavigation',
+      label: 'Navigation',
+      type: 'separator',
+    },
+    {
+      key: 'showBackButton',
+      label: 'Afficher le bouton retour',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'backButtonText',
+      label: 'Texte du bouton retour',
+      type: 'text',
+      placeholder: 'Menu',
+      defaultValue: 'Menu',
+      showWhen: { field: 'showBackButton', value: true },
+    },
+    {
+      key: 'showRefreshButton',
+      label: 'Afficher le bouton actualiser',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'separatorContent',
+      label: 'Contenu',
+      type: 'separator',
+    },
+    {
+      key: 'showEstimatedTime',
+      label: 'Afficher le temps estimé',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'showOrderNumber',
+      label: 'Afficher le numéro de commande',
+      type: 'switch',
+      defaultValue: true,
+    },
+    {
+      key: 'showCopyButton',
+      label: 'Bouton copier le numéro',
+      type: 'switch',
+      defaultValue: true,
+      showWhen: { field: 'showOrderNumber', value: true },
+    },
+  ],
+}

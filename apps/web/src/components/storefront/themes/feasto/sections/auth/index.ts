@@ -1,0 +1,6 @@
+export { LoginHeaderSection } from './LoginHeaderSection'
+export { LoginFormSection } from './LoginFormSection'
+export { RegisterHeaderSection } from './RegisterHeaderSection'
+export { RegisterFormSection } from './RegisterFormSection'
+export { ForgotPasswordHeaderSection } from './ForgotPasswordHeaderSection'
+export { ForgotPasswordFormSection } from './ForgotPasswordFormSection'
