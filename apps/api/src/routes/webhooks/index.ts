@@ -239,4 +239,77 @@ router.post('/moneroo/storefront', async (req: Request, res: Response) => {
   }
 })
 
+// Webhook Moneroo pour les paiements vitrine (showcase)
+router.post('/moneroo/showcase', async (req: Request, res: Response) => {
+  try {
+    const signature = req.headers['x-moneroo-signature'] as string
+    const webhookPayload = req.body as MonerooWebhookPayload
+
+    console.log('Webhook Moneroo Showcase reçu:', webhookPayload.event, webhookPayload.data?.id)
+
+    const { event, data } = webhookPayload
+
+    if (!data?.metadata?.showcasePaymentId) {
+      console.log('Webhook Moneroo Showcase: pas de showcasePaymentId dans metadata')
+      return res.json({ received: true })
+    }
+
+    const showcasePaymentId = data.metadata.showcasePaymentId
+
+    const showcasePayment = await prisma.showcasePayment.findUnique({
+      where: { id: showcasePaymentId },
+      include: {
+        organization: {
+          select: {
+            monerooWebhookSecret: true,
+          }
+        }
+      }
+    })
+
+    if (!showcasePayment) {
+      console.log('Webhook Moneroo Showcase: paiement introuvable', showcasePaymentId)
+      return res.status(404).json({ error: 'Payment not found' })
+    }
+
+    if (showcasePayment.organization.monerooWebhookSecret && signature) {
+      const isValid = monerooService.verifyWebhookSignature(
+        JSON.stringify(req.body),
+        signature,
+        showcasePayment.organization.monerooWebhookSecret
+      )
+      if (!isValid) {
+        console.log('Webhook Moneroo Showcase: signature invalide')
+        return res.status(401).json({ error: 'Invalid signature' })
+      }
+    }
+
+    if (event === 'payment.success') {
+      await prisma.showcasePayment.update({
+        where: { id: showcasePaymentId },
+        data: {
+          status: 'PAID',
+          monerooStatus: 'success',
+          paidAt: new Date(),
+        }
+      })
+      console.log('Webhook Moneroo Showcase: paiement marqué comme payé', showcasePaymentId)
+    } else if (event === 'payment.failed' || event === 'payment.cancelled') {
+      await prisma.showcasePayment.update({
+        where: { id: showcasePaymentId },
+        data: {
+          status: 'FAILED',
+          monerooStatus: event === 'payment.failed' ? 'failed' : 'cancelled',
+        }
+      })
+      console.log('Webhook Moneroo Showcase: paiement échoué/annulé', showcasePaymentId)
+    }
+
+    res.json({ received: true })
+  } catch (error) {
+    console.error('Erreur webhook Moneroo Showcase:', error)
+    res.status(500).json({ error: 'Internal error' })
+  }
+})
+
 export { router as webhookRoutes }

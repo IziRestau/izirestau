@@ -82,6 +82,34 @@ export function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/store/${subdomain}${url.pathname}?${searchParams}`, request.url))
   }
 
+  // Domaines personnalisés revendeurs (custom domains)
+  // Si ce n'est pas un domaine principal, admin ou sous-domaine restaurant,
+  // c'est potentiellement un domaine personnalisé de revendeur
+  const isCustomDomain = !isMainDomain && 
+                         !isAdminDomain && 
+                         !isRestaurantSubdomain &&
+                         !hostname.includes(rootDomain)
+
+  if (isCustomDomain) {
+    // Router vers la vitrine publique avec le domaine comme identifiant
+    const customDomain = hostname.replace(/:\d+$/, '') // Enlever le port si présent
+    
+    if (url.pathname === '/' || url.pathname === '') {
+      return NextResponse.rewrite(new URL(`/showcase/${customDomain}`, request.url))
+    }
+    
+    if (url.pathname.startsWith('/checkout')) {
+      return NextResponse.rewrite(new URL(`/showcase/${customDomain}${url.pathname}`, request.url))
+    }
+    
+    if (url.pathname.startsWith('/onboarding')) {
+      return NextResponse.rewrite(new URL(`/showcase/${customDomain}${url.pathname}`, request.url))
+    }
+    
+    // Autres chemins sur domaine personnalisé
+    return NextResponse.rewrite(new URL(`/showcase/${customDomain}${url.pathname}`, request.url))
+  }
+
   return NextResponse.next()
 }
 

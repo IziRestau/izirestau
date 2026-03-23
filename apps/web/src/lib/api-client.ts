@@ -521,6 +521,83 @@ export const api = {
     sendInvoiceReminder: (invoiceId: string) =>
       apiClient.post<{ success: boolean; remindersSent: number }>(`/reseller/invoices/${invoiceId}/reminder`),
 
+    // Transactions (ShowcasePayment)
+    getTransactions: (params?: { status?: string; search?: string; page?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams()
+      if (params?.status) searchParams.set('status', params.status)
+      if (params?.search) searchParams.set('search', params.search)
+      if (params?.page) searchParams.set('page', String(params.page))
+      if (params?.limit) searchParams.set('limit', String(params.limit))
+      const query = searchParams.toString()
+      return apiClient.get<{
+        transactions: Array<{
+          id: string
+          email: string
+          firstName: string | null
+          lastName: string | null
+          phone: string | null
+          plan: { id: string; name: string; slug: string } | null
+          amount: number
+          currency: string
+          billingCycle: number
+          status: 'PENDING' | 'PAID' | 'ONBOARDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED'
+          monerooPaymentId: string | null
+          monerooStatus: string | null
+          paidAt: string | null
+          clientId: string | null
+          siteId: string | null
+          createdAt: string
+        }>
+        pagination: {
+          page: number
+          limit: number
+          total: number
+          totalPages: number
+        }
+        stats: {
+          total: { count: number; amount: number }
+          paid: { count: number; amount: number }
+          pending: { count: number; amount: number }
+          failed: { count: number; amount: number }
+        }
+      }>(`/reseller/transactions${query ? `?${query}` : ''}`)
+    },
+
+    getTransaction: (transactionId: string) =>
+      apiClient.get<{
+        id: string
+        email: string
+        firstName: string | null
+        lastName: string | null
+        phone: string | null
+        plan: { id: string; name: string; slug: string; description: string | null } | null
+        amount: number
+        currency: string
+        billingCycle: number
+        status: 'PENDING' | 'PAID' | 'ONBOARDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED'
+        monerooPaymentId: string | null
+        monerooStatus: string | null
+        paidAt: string | null
+        onboardingToken: string
+        onboardingExpires: string
+        client: {
+          id: string
+          name: string
+          email: string
+          contactFirstName: string
+          contactLastName: string
+          status: string
+        } | null
+        site: {
+          id: string
+          subdomain: string
+          status: string
+          restaurant: { name: string } | null
+        } | null
+        createdAt: string
+        updatedAt: string
+      }>(`/reseller/transactions/${transactionId}`),
+
     getStats: (period: 'day' | 'week' | 'month') =>
       apiClient.get<{
         period: string
@@ -634,6 +711,66 @@ export const api = {
 
     updateClientNotes: (clientId: string, notes: string) =>
       apiClient.patch<{ id: string; notes: string }>(`/reseller/clients/${clientId}/notes`, { notes }),
+
+    // Client Payments (paiements manuels)
+    getClientPayments: (clientId: string) =>
+      apiClient.get<Array<{
+        id: string
+        amount: number
+        currency: string
+        method: 'BANK_TRANSFER' | 'CHECK' | 'CASH' | 'CARD' | 'OTHER'
+        reference: string | null
+        notes: string | null
+        receivedAt: string
+        createdAt: string
+      }>>(`/reseller/clients/${clientId}/payments`),
+
+    createClientPayment: (clientId: string, data: {
+      amount: number
+      currency?: string
+      method: 'BANK_TRANSFER' | 'CHECK' | 'CASH' | 'CARD' | 'OTHER'
+      reference?: string
+      notes?: string
+      invoiceId?: string
+      receivedAt?: string
+    }) => apiClient.post<{
+      id: string
+      amount: number
+      currency: string
+      method: string
+      reference: string | null
+      notes: string | null
+      receivedAt: string
+      createdAt: string
+    }>(`/reseller/clients/${clientId}/payments`, data),
+
+    deleteClientPayment: (clientId: string, paymentId: string) =>
+      apiClient.delete<{ success: boolean }>(`/reseller/clients/${clientId}/payments/${paymentId}`),
+
+    // Subscriptions (gestion des abonnements)
+    updateSubscription: (subscriptionId: string, data: {
+      name?: string
+      amount?: number
+      billingCycle?: 'MONTHLY' | 'YEARLY'
+      nextBillingDate?: string
+    }) => apiClient.put<{
+      id: string
+      name: string
+      amount: number
+      currency: string
+      billingCycle: string
+      status: string
+      nextBillingDate: string | null
+    }>(`/reseller/subscriptions/${subscriptionId}`, data),
+
+    cancelSubscription: (subscriptionId: string) =>
+      apiClient.post<{ id: string; status: string; cancelledAt: string }>(`/reseller/subscriptions/${subscriptionId}/cancel`),
+
+    pauseSubscription: (subscriptionId: string) =>
+      apiClient.post<{ id: string; status: string }>(`/reseller/subscriptions/${subscriptionId}/pause`),
+
+    resumeSubscription: (subscriptionId: string) =>
+      apiClient.post<{ id: string; status: string }>(`/reseller/subscriptions/${subscriptionId}/resume`),
 
     getSettings: () =>
       apiClient.get<{
@@ -831,6 +968,198 @@ export const api = {
       notifyEmailWeeklyReport: boolean
       notifyEmailMarketing: boolean
     }>('/reseller/settings/notifications', data),
+
+    // Plans
+    getPlans: (includeArchived?: boolean) =>
+      apiClient.get<Array<{
+        id: string
+        name: string
+        slug: string
+        description: string | null
+        priceMonthly: number
+        priceYearly: number | null
+        currency: string
+        features: string[]
+        isCustom: boolean
+        isActive: boolean
+        isArchived: boolean
+        isPopular: boolean
+        isPublic: boolean
+        sortOrder: number
+        subscribersCount: number
+        createdAt: string
+      }>>(`/reseller/plans${includeArchived ? '?includeArchived=true' : ''}`),
+
+    getPlan: (planId: string) =>
+      apiClient.get<{
+        id: string
+        name: string
+        slug: string
+        description: string | null
+        priceMonthly: number
+        priceYearly: number | null
+        currency: string
+        features: string[]
+        isCustom: boolean
+        isActive: boolean
+        isArchived: boolean
+        isPopular: boolean
+        isPublic: boolean
+        sortOrder: number
+        subscribersCount: number
+        subscriptions: Array<{
+          id: string
+          client: {
+            id: string
+            name: string
+            email: string
+            status: string
+          }
+        }>
+      }>(`/reseller/plans/${planId}`),
+
+    createPlan: (data: {
+      name: string
+      description?: string
+      price: number
+      currency?: string
+      billingCycle?: number
+      billingCycleLabel?: string
+      isCustom?: boolean
+      isPopular?: boolean
+      isPublic?: boolean
+      sortOrder?: number
+    }) => apiClient.post<{
+      id: string
+      name: string
+      slug: string
+    }>('/reseller/plans', data),
+
+    updatePlan: (planId: string, data: {
+      name?: string
+      description?: string
+      price?: number
+      currency?: string
+      billingCycle?: number
+      billingCycleLabel?: string
+      isCustom?: boolean
+      isPopular?: boolean
+      isPublic?: boolean
+      sortOrder?: number
+    }) => apiClient.put<{
+      id: string
+      name: string
+      slug: string
+    }>(`/reseller/plans/${planId}`, data),
+
+    deletePlan: (planId: string) =>
+      apiClient.delete<{ success: boolean; archived?: boolean; deleted?: boolean }>(`/reseller/plans/${planId}`),
+
+    // Showcase
+    getShowcase: () =>
+      apiClient.get<{
+        showcase: {
+          id: string
+          isEnabled: boolean
+          // Nouvelles configurations avancées
+          heroConfig: Record<string, unknown> | null
+          productConfig: Record<string, unknown> | null
+          howItWorksConfig: Record<string, unknown> | null
+          benefitsConfig: Record<string, unknown> | null
+          pricingConfig: Record<string, unknown> | null
+          testimonialsConfig: Record<string, unknown> | null
+          faqConfig: Record<string, unknown> | null
+          contactConfig: Record<string, unknown> | null
+          footerConfig: Record<string, unknown> | null
+          sectionsOrder: string[] | null
+          globalStyles: Record<string, unknown> | null
+          template: string
+          metaTitle: string | null
+          metaDescription: string | null
+        }
+        organization: {
+          id: string
+          name: string
+          slug: string
+          logo: string | null
+          primaryColor: string
+          customDomain: string | null
+          domainVerified: boolean
+          monerooConfigured: boolean
+        }
+        canPublish: boolean
+      }>('/reseller/showcase'),
+
+    updateShowcase: (data: Record<string, unknown>) => 
+      apiClient.put<{
+        id: string
+        isEnabled: boolean
+      }>('/reseller/showcase', data),
+
+    toggleShowcase: (enable: boolean) =>
+      apiClient.post<{ isEnabled: boolean; message: string }>('/reseller/showcase/toggle', { enable }),
+
+    // Invitations
+    getInvitations: (params?: { status?: string; page?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams()
+      if (params?.status) searchParams.set('status', params.status)
+      if (params?.page) searchParams.set('page', String(params.page))
+      if (params?.limit) searchParams.set('limit', String(params.limit))
+      const query = searchParams.toString()
+      return apiClient.get<Array<{
+        id: string
+        email: string
+        firstName: string | null
+        lastName: string | null
+        phone: string | null
+        amount: number
+        currency: string
+        billingCycle: string
+        status: string
+        plan: { id: string; name: string } | null
+        createdAt: string
+        onboardingExpires: string
+      }>>(`/reseller/invitations${query ? `?${query}` : ''}`)
+    },
+
+    createInvitation: (data: {
+      email: string
+      firstName?: string
+      lastName?: string
+      phone?: string
+      amount: number
+      currency?: string
+      billingCycle?: 'MONTHLY' | 'YEARLY'
+      planId?: string
+      message?: string
+    }) => apiClient.post<{
+      id: string
+      email: string
+      amount: number
+      currency: string
+      paymentLink: string
+      expiresAt: string
+    }>('/reseller/invitations', data),
+
+    cancelInvitation: (invitationId: string) =>
+      apiClient.delete<{ success: boolean }>(`/reseller/invitations/${invitationId}`),
+
+    moneroo: {
+      get: () =>
+        apiClient.get<{
+          secretKey: string
+          webhookSecret: string
+          isConfigured: boolean
+          hasSecretKey: boolean
+          hasWebhookSecret: boolean
+        }>('/reseller/settings/moneroo'),
+
+      update: (data: { secretKey: string; webhookSecret?: string }) =>
+        apiClient.put<{ message: string }>('/reseller/settings/moneroo', data),
+
+      test: () =>
+        apiClient.post<{ message: string }>('/reseller/settings/moneroo/test'),
+    },
   },
 
   twoFactor: {
@@ -853,20 +1182,48 @@ export const api = {
   domain: {
     get: () =>
       apiClient.get<{
+        slug: string
         customDomain: string | null
         domainVerified: boolean
-        domainVerifiedAt: string | null
         domainTxtRecord: string | null
-      }>('/reseller/settings/domain'),
+        vercelConfigured: boolean
+        vercelStatus: {
+          verified: boolean
+          verification?: Array<{
+            type: string
+            domain: string
+            value: string
+            reason: string
+          }>
+        } | null
+      }>('/reseller/domain'),
 
-    set: (domain: string) =>
-      apiClient.post<{ domain: string; txtRecord: string; message: string }>('/reseller/settings/domain', { domain }),
+    add: (domain: string) =>
+      apiClient.post<{
+        customDomain: string
+        domainVerified: boolean
+        verification?: Array<{
+          type: string
+          domain: string
+          value: string
+        }>
+        message: string
+      }>('/reseller/domain', { domain }),
 
     verify: () =>
-      apiClient.post<{ message: string }>('/reseller/settings/domain/verify'),
+      apiClient.post<{
+        verified: boolean
+        verification?: Array<{
+          type: string
+          domain: string
+          value: string
+          reason: string
+        }>
+        message: string
+      }>('/reseller/domain/verify'),
 
     remove: () =>
-      apiClient.delete<{ message: string }>('/reseller/settings/domain'),
+      apiClient.delete<{ message: string }>('/reseller/domain'),
   },
 
   currency: {
@@ -875,23 +1232,6 @@ export const api = {
 
     update: (currency: string) =>
       apiClient.put<{ currency: string; message: string }>('/reseller/settings/currency', { currency }),
-  },
-
-  moneroo: {
-    get: () =>
-      apiClient.get<{
-        secretKey: string
-        webhookSecret: string
-        isConfigured: boolean
-        hasSecretKey: boolean
-        hasWebhookSecret: boolean
-      }>('/reseller/settings/moneroo'),
-
-    update: (data: { secretKey: string; webhookSecret?: string }) =>
-      apiClient.put<{ message: string }>('/reseller/settings/moneroo', data),
-
-    test: () =>
-      apiClient.post<{ message: string }>('/reseller/settings/moneroo/test'),
   },
 
   upload: {

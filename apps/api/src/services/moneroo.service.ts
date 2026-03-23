@@ -156,6 +156,18 @@ class MonerooService {
     }
     return `${baseUrl}/api/webhooks/moneroo/${level}/${entityId}`
   }
+
+  generateShowcaseReturnUrl(
+    baseUrl: string,
+    organizationSlug: string,
+    onboardingToken: string
+  ): string {
+    return `${baseUrl}/showcase/${organizationSlug}/onboarding?token=${onboardingToken}`
+  }
+
+  generateShowcaseWebhookUrl(baseUrl: string): string {
+    return `${baseUrl}/api/webhooks/moneroo/showcase`
+  }
 }
 
 export const monerooService = new MonerooService()

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { resellerNavigation } from '@/config/reseller-navigation'
 import { useResellerSiteDetails } from '@/hooks/use-reseller'
+import { useResellerCurrency } from '@/hooks/use-currency'
 import { api, apiClient } from '@/lib/api-client'
 import { toast } from 'sonner'
 import {
@@ -50,7 +51,12 @@ import {
   X,
   MoreVertical,
   Send,
+  Plus,
+  Banknote,
+  Wallet,
 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { PaymentModal } from '@/components/reseller/PaymentModal'
 
 export default function SiteDetailsPage() {
   const router = useRouter()
@@ -59,6 +65,7 @@ export default function SiteDetailsPage() {
   
   const { accessToken } = useAuthStore()
   const { data: site, isLoading, refetch } = useResellerSiteDetails(siteId)
+  const { format: formatAmount, currency } = useResellerCurrency()
   
   const [statusConfirm, setStatusConfirm] = useState<{ action: 'activate' | 'suspend' } | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -74,6 +81,10 @@ export default function SiteDetailsPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const [reminderConfirm, setReminderConfirm] = useState<{ invoiceId: string; invoiceNumber: string; clientEmail: string } | null>(null)
   const [isSendingReminder, setIsSendingReminder] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [cancelSubConfirm, setCancelSubConfirm] = useState<{ id: string; name: string } | null>(null)
+  const [isCancelingSub, setIsCancelingSub] = useState(false)
+  const queryClient = useQueryClient()
 
   const handleStatusChange = async () => {
     if (!statusConfirm || !site) return
@@ -244,6 +255,61 @@ export default function SiteDetailsPage() {
       invoiceNumber: invoice.invoiceNumber,
       clientEmail: site?.client?.email || ''
     })
+  }
+
+  // Query pour les paiements du client
+  const { data: paymentsData } = useQuery({
+    queryKey: ['client-payments', site?.client?.id],
+    queryFn: async () => {
+      if (accessToken) apiClient.setAccessToken(accessToken)
+      return api.reseller.getClientPayments(site?.client?.id || '')
+    },
+    enabled: !!accessToken && !!site?.client?.id,
+  })
+
+  const payments = paymentsData?.data || []
+
+  // Mutation pour créer un paiement
+  const createPaymentMutation = useMutation({
+    mutationFn: async (data: { amount: number; method: 'BANK_TRANSFER' | 'CHECK' | 'CASH' | 'CARD' | 'OTHER'; reference?: string; notes?: string; invoiceId?: string }) => {
+      if (accessToken) apiClient.setAccessToken(accessToken)
+      return api.reseller.createClientPayment(site?.client?.id || '', data)
+    },
+    onSuccess: () => {
+      toast.success('Paiement enregistre')
+      setShowPaymentModal(false)
+      queryClient.invalidateQueries({ queryKey: ['client-payments', site?.client?.id] })
+      refetch()
+    },
+    onError: () => {
+      toast.error('Erreur lors de l\'enregistrement')
+    },
+  })
+
+  const handleCreatePayment = async (data: { amount: number; method: 'BANK_TRANSFER' | 'CHECK' | 'CASH' | 'CARD' | 'OTHER'; reference?: string; notes?: string; invoiceId?: string }) => {
+    await createPaymentMutation.mutateAsync(data)
+  }
+
+  // Factures impayees pour le modal de paiement
+  const unpaidInvoices = (site?.client?.invoices || [])
+    .filter((inv: { status: string }) => inv.status !== 'PAID')
+    .map((inv: { id: string; invoiceNumber: string; total: number; status: string }) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      amount: Number(inv.total),
+      status: inv.status,
+      currency,
+    }))
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'BANK_TRANSFER': return 'Virement'
+      case 'CHECK': return 'Cheque'
+      case 'CASH': return 'Especes'
+      case 'CARD': return 'Carte'
+      case 'OTHER': return 'Autre'
+      default: return method
+    }
   }
 
   if (!site && isLoading) {
@@ -492,43 +558,125 @@ export default function SiteDetailsPage() {
             <h3 className="font-semibold text-gray-900 mb-4">Abonnement</h3>
             
             {site.client?.subscriptions && site.client.subscriptions.length > 0 ? (
-              site.client.subscriptions.map((sub) => (
-                <div key={sub.id} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm text-gray-500">{sub.name}</div>
-                      <div className="text-xl font-bold text-gray-900">
-                        {Number(sub.amount).toFixed(2)} {sub.currency}
-                        <span className="text-sm font-normal text-gray-500">/{sub.billingCycle === 'MONTHLY' ? 'mois' : 'an'}</span>
-                      </div>
-                    </div>
-                    {sub.status === 'ACTIVE' ? (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-                        <CheckCircle size={12} />
-                        Actif
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                        <AlertCircle size={12} />
-                        {sub.status}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-6 text-sm">
-                    <div>
-                      <span className="text-gray-500">Debut: </span>
-                      <span className="text-gray-900">{formatDate(sub.startDate)}</span>
-                    </div>
-                    {sub.nextBillingDate && (
+              site.client.subscriptions.map((sub) => {
+                const getStatusBadge = (status: string) => {
+                  switch (status) {
+                    case 'ACTIVE':
+                      return (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                          <CheckCircle size={12} />
+                          Actif
+                        </span>
+                      )
+                    case 'PAUSED':
+                      return (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          <Clock size={12} />
+                          En pause
+                        </span>
+                      )
+                    case 'CANCELLED':
+                      return (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                          <X size={12} />
+                          Annule
+                        </span>
+                      )
+                    default:
+                      return (
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                          <AlertCircle size={12} />
+                          {status}
+                        </span>
+                      )
+                  }
+                }
+
+                const handlePauseSubscription = async () => {
+                  try {
+                    if (accessToken) apiClient.setAccessToken(accessToken)
+                    await api.reseller.pauseSubscription(sub.id)
+                    toast.success('Abonnement mis en pause')
+                    refetch()
+                  } catch {
+                    toast.error('Erreur lors de la mise en pause')
+                  }
+                }
+
+                const handleResumeSubscription = async () => {
+                  try {
+                    if (accessToken) apiClient.setAccessToken(accessToken)
+                    await api.reseller.resumeSubscription(sub.id)
+                    toast.success('Abonnement reactive')
+                    refetch()
+                  } catch {
+                    toast.error('Erreur lors de la reactivation')
+                  }
+                }
+
+                const openCancelConfirm = () => {
+                  setCancelSubConfirm({ id: sub.id, name: sub.name })
+                }
+
+                return (
+                  <div key={sub.id} className="space-y-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-gray-500">Prochain: </span>
-                        <span className="text-gray-900">{formatDate(sub.nextBillingDate)}</span>
+                        <div className="text-sm text-gray-500">{sub.name}</div>
+                        <div className="text-xl font-bold text-gray-900">
+                          {formatAmount(Number(sub.amount))}
+                          <span className="text-sm font-normal text-gray-500">/{sub.billingCycle === 'MONTHLY' ? 'mois' : 'an'}</span>
+                        </div>
+                      </div>
+                      {getStatusBadge(sub.status)}
+                    </div>
+                    
+                    <div className="flex items-center gap-6 text-sm">
+                      <div>
+                        <span className="text-gray-500">Debut: </span>
+                        <span className="text-gray-900">{formatDate(sub.startDate)}</span>
+                      </div>
+                      {sub.nextBillingDate && (
+                        <div>
+                          <span className="text-gray-500">Prochain: </span>
+                          <span className="text-gray-900">{formatDate(sub.nextBillingDate)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions abonnement */}
+                    {sub.status !== 'CANCELLED' && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                        {sub.status === 'ACTIVE' && (
+                          <button
+                            onClick={handlePauseSubscription}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          >
+                            <Clock size={12} />
+                            Mettre en pause
+                          </button>
+                        )}
+                        {(sub.status === 'PAUSED' || sub.status === 'PAST_DUE') && (
+                          <button
+                            onClick={handleResumeSubscription}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                          >
+                            <CheckCircle size={12} />
+                            Reactiver
+                          </button>
+                        )}
+                        <button
+                          onClick={openCancelConfirm}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <X size={12} />
+                          Annuler
+                        </button>
                       </div>
                     )}
                   </div>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="text-center py-4">
                 <p className="text-sm text-gray-500">Aucun abonnement</p>
@@ -565,7 +713,7 @@ export default function SiteDetailsPage() {
                     </div>
                     
                     <div className="flex-1 text-center">
-                      <div className="font-semibold text-gray-900">{Number(invoice.total).toFixed(2)} EUR</div>
+                      <div className="font-semibold text-gray-900">{formatAmount(Number(invoice.total))}</div>
                     </div>
                     
                     <div className="flex items-center gap-2 flex-1 justify-end">
@@ -614,6 +762,73 @@ export default function SiteDetailsPage() {
               </div>
             )}
           </div>
+
+          {/* Paiements manuels */}
+          {site.client && (
+            <div className="bg-white rounded-2xl border border-gray-100">
+              <div className="flex items-center justify-between p-6 pb-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Paiements</h3>
+                  {payments.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-0.5">{payments.length} paiement(s)</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
+                >
+                  <Plus size={14} />
+                  Ajouter
+                </button>
+              </div>
+              
+              {payments.length > 0 ? (
+                <div className="px-6 pb-6 space-y-2">
+                  {payments.map((payment: { id: string; amount: number; currency: string; method: string; reference: string | null; receivedAt: string }) => (
+                    <div 
+                      key={payment.id}
+                      className="flex items-center p-4 bg-gray-50 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-100">
+                          <Wallet size={16} className="text-emerald-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm">{getPaymentMethodLabel(payment.method)}</div>
+                          <div className="text-xs text-gray-500">{formatDate(payment.receivedAt)}</div>
+                        </div>
+                      </div>
+                      
+                      {payment.reference && (
+                        <div className="flex-1 text-center hidden sm:block">
+                          <span className="text-xs text-gray-500">Ref: {payment.reference}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2 flex-1 justify-end">
+                        <span className="font-semibold text-gray-900">{formatAmount(Number(payment.amount))}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-6 pb-6">
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Banknote size={20} className="text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-500">Aucun paiement enregistre</p>
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="text-sm text-emerald-600 hover:text-emerald-700 mt-2"
+                    >
+                      Enregistrer un paiement
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Colonne droite - Client + Actions */}
@@ -868,6 +1083,44 @@ export default function SiteDetailsPage() {
         cancelText="Annuler"
         variant="info"
         isLoading={isSendingReminder}
+      />
+
+      {/* Modal Nouveau Paiement */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSubmit={handleCreatePayment}
+        isLoading={createPaymentMutation.isPending}
+        clientName={site?.client?.name}
+        unpaidInvoices={unpaidInvoices}
+        currency={currency}
+      />
+
+      {/* Confirmation annulation abonnement */}
+      <ConfirmModal
+        isOpen={!!cancelSubConfirm}
+        onClose={() => setCancelSubConfirm(null)}
+        onConfirm={async () => {
+          if (!cancelSubConfirm) return
+          setIsCancelingSub(true)
+          try {
+            if (accessToken) apiClient.setAccessToken(accessToken)
+            await api.reseller.cancelSubscription(cancelSubConfirm.id)
+            toast.success('Abonnement annule')
+            setCancelSubConfirm(null)
+            refetch()
+          } catch {
+            toast.error('Erreur lors de l\'annulation')
+          } finally {
+            setIsCancelingSub(false)
+          }
+        }}
+        title="Annuler l'abonnement"
+        message={`Etes-vous sur de vouloir annuler l'abonnement "${cancelSubConfirm?.name || ''}" ? Cette action est irreversible.`}
+        confirmText="Annuler l'abonnement"
+        cancelText="Retour"
+        variant="danger"
+        isLoading={isCancelingSub}
       />
     </DashboardLayout>
   )

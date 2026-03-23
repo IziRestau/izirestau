@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import { DashboardLayout } from '@/components/shared/dashboard'
 import { PageSkeleton } from '@/components/shared/PageSkeleton'
@@ -49,9 +49,26 @@ const tabs: { id: SettingsTab; label: string; icon: typeof User; description: st
 
 export default function SettingsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { accessToken, user: authUser, setUser } = useAuthStore()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Synchroniser l'onglet actif avec l'URL
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as SettingsTab | null
+    const validTabs: SettingsTab[] = ['profile', 'organization', 'branding', 'payments', 'notifications', 'security', 'domain']
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
+
+  // Mettre à jour l'URL quand l'onglet change
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTab(tab)
+    setIsMobileMenuOpen(false)
+    router.push(`/reseller/settings?tab=${tab}`, { scroll: false })
+  }
 
   const { data: settings, isLoading, refetch } = useQuery({
     queryKey: ['reseller-settings'],
@@ -249,8 +266,7 @@ export default function SettingsPage() {
                       key={tab.id}
                       onClick={() => {
                         if (!isDisabled) {
-                          setActiveTab(tab.id)
-                          setIsMobileMenuOpen(false)
+                          handleTabChange(tab.id)
                         }
                       }}
                       disabled={isDisabled}
@@ -296,7 +312,7 @@ export default function SettingsPage() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => !isDisabled && setActiveTab(tab.id)}
+                    onClick={() => !isDisabled && handleTabChange(tab.id)}
                     disabled={isDisabled}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all w-full",

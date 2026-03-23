@@ -180,6 +180,10 @@ model ResellerOrganization {
   emailTemplates    ResellerEmailTemplate[]
   supportTickets    SupportTicket[]
   
+  plans             ResellerPlan[]
+  showcase          ResellerShowcase?
+  showcasePayments  ShowcasePayment[]
+  
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   
@@ -223,6 +227,150 @@ enum ResellerRole {
   ADMIN
   SALES
   MEMBER
+}
+
+// ============================================
+// RESELLER PLANS (Plans tarifaires du Revendeur)
+// ============================================
+
+model ResellerPlan {
+  id                String    @id @default(cuid())
+  
+  organizationId    String
+  organization      ResellerOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  name              String
+  slug              String
+  description       String?
+  
+  price             Decimal   @db.Decimal(10, 2)
+  currency          String    @default("XOF")
+  billingCycle      Int       @default(1)  // Nombre de mois (1=mensuel, 3=trimestriel, 6=semestriel, 12=annuel, 24=biannuel)
+  billingCycleLabel String?   // Label personnalisé (ex: "Mensuel", "Annuel", "2 ans")
+  
+  isCustom          Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  isPopular         Boolean   @default(false)
+  isPublic          Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  
+  subscriptions     ClientSubscription[]
+  showcasePayments  ShowcasePayment[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+// ============================================
+// RESELLER SHOWCASE (Vitrine publique)
+// ============================================
+
+model ResellerShowcase {
+  id                String    @id @default(cuid())
+  
+  organizationId    String    @unique
+  organization      ResellerOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  isEnabled         Boolean   @default(false)
+  
+  // Configuration Hero
+  heroConfig        Json?     // { layout, title, subtitle, image, video, showStats, stats, ctaText, ctaAction }
+  
+  // Configuration sections
+  productConfig     Json?     // { enabled, title, subtitle, modules[], layout }
+  howItWorksConfig  Json?     // { enabled, title, steps[], layout }
+  benefitsConfig    Json?     // { enabled, title, items[], layout }
+  pricingConfig     Json?     // { enabled, title, subtitle, layout, highlightedPlanId }
+  testimonialsConfig Json?    // { enabled, title, items[], layout }
+  faqConfig         Json?     // { enabled, title, items[], layout }
+  contactConfig     Json?     // { enabled, title, subtitle, showForm, showInfo }
+  footerConfig      Json?     // { showBadges, badges[], links[], socials[] }
+  
+  // Ordre des sections
+  sectionsOrder     Json?     // ['hero', 'product', 'howItWorks', 'benefits', 'pricing', 'testimonials', 'faq', 'contact']
+  
+  // Styles globaux
+  globalStyles      Json?     // { primaryColor, secondaryColor, fontFamily, borderRadius, cardStyle, buttonStyle, spacing }
+  
+  // Template actif
+  template          String    @default("modern") // modern, professional, dynamic, minimal
+  
+  // SEO
+  metaTitle         String?
+  metaDescription   String?
+  
+  // Legacy fields (pour migration)
+  headline          String?
+  subheadline       String?
+  heroImage         String?
+  ctaText           String    @default("Commencer maintenant")
+  showPricing       Boolean   @default(true)
+  showFeatures      Boolean   @default(true)
+  showTestimonials  Boolean   @default(false)
+  showFAQ           Boolean   @default(false)
+  showContact       Boolean   @default(true)
+  featuresContent   Json?
+  testimonials      Json?
+  faq               Json?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ============================================
+// SHOWCASE PAYMENT (Paiements vitrine)
+// ============================================
+
+model ShowcasePayment {
+  id                String    @id @default(cuid())
+  
+  organizationId    String
+  organization      ResellerOrganization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  email             String
+  firstName         String?
+  lastName          String?
+  phone             String?
+  
+  planId            String?
+  plan              ResellerPlan? @relation(fields: [planId], references: [id])
+  
+  amount            Decimal   @db.Decimal(10, 2)
+  currency          String    @default("XOF")
+  billingCycle      Int       @default(1)
+  
+  monerooPaymentId  String?   @unique
+  monerooStatus     String?
+  
+  onboardingToken   String    @unique @default(cuid())
+  onboardingExpires DateTime
+  
+  status            ShowcasePaymentStatus @default(PENDING)
+  paidAt            DateTime?
+  
+  clientId          String?
+  siteId            String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([organizationId])
+  @@index([email])
+  @@index([onboardingToken])
+}
+
+enum ShowcasePaymentStatus {
+  PENDING
+  PAID
+  ONBOARDING
+  COMPLETED
+  EXPIRED
+  FAILED
 }
 
 // ============================================
@@ -657,12 +805,17 @@ model ClientSubscription {
   clientId          String
   client            Client    @relation(fields: [clientId], references: [id])
   
+  planId            String?
+  plan              ResellerPlan? @relation(fields: [planId], references: [id])
+  
   name              String
   description       String?
   
   amount            Decimal   @db.Decimal(10, 2)
-  currency          String    @default("EUR")
+  currency          String    @default("XOF")
   billingCycle      BillingCycle @default(MONTHLY)
+  
+  planSnapshot      Json?
   
   status            SubscriptionStatus @default(ACTIVE)
   
@@ -678,6 +831,7 @@ model ClientSubscription {
   
   @@index([organizationId])
   @@index([clientId])
+  @@index([planId])
 }
 
 enum SubscriptionStatus {
@@ -716,6 +870,7 @@ model ClientInvoice {
   paidAt            DateTime?
   
   items             ClientInvoiceItem[]
+  payments          ClientPayment[]
   
   pdfUrl            String?
   notes             String?
@@ -766,6 +921,9 @@ model ClientPayment {
   clientId          String
   client            Client    @relation(fields: [clientId], references: [id])
   
+  invoiceId         String?
+  invoice           ClientInvoice? @relation(fields: [invoiceId], references: [id])
+  
   amount            Decimal   @db.Decimal(10, 2)
   currency          String    @default("XOF")
   
@@ -778,6 +936,7 @@ model ClientPayment {
   
   @@index([organizationId])
   @@index([clientId])
+  @@index([invoiceId])
 }
 
 enum ClientPaymentMethod {

@@ -2,10 +2,18 @@ import { Router, Request, Response } from 'express'
 import { prisma } from '@iziresto/database'
 import customerAuthRoutes from './customer-auth.routes'
 import customerAccountRoutes from './customer-account.routes'
+import { publicShowcaseRoutes } from './showcase.routes'
+import { showcaseOnboardingRoutes } from './showcase-onboarding.routes'
 import { monerooService } from '../../services/moneroo.service'
 import { sendLoyaltyPointsRedeemedEmail } from '../../services/email.service'
 
 const router = Router()
+
+// Showcase routes (vitrine revendeur)
+router.use('/showcase', publicShowcaseRoutes)
+
+// Showcase onboarding routes
+router.use('/showcase/onboarding', showcaseOnboardingRoutes)
 
 // Customer auth routes
 router.use('/:subdomain/auth', customerAuthRoutes)

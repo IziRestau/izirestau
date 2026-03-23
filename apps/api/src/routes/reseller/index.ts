@@ -1,16 +1,24 @@
 import { Router } from 'express'
-import { prisma, Site, Client, SiteStatus } from '@iziresto/database'
+import { prisma, Site, Client, SiteStatus, ShowcasePaymentStatus } from '@iziresto/database'
 import { sendInvitationEmail } from '../../services/email.service'
 import { authenticate } from '../../middlewares/auth.middleware'
 import { cache, invalidateCacheKey } from '../../middlewares/cache.middleware'
 import { redis, cacheKeys, cacheTTL } from '../../services/redis.service'
 import supportRoutes from './support.routes'
+import { plansRoutes } from './plans.routes'
+import { showcaseRoutes } from './showcase.routes'
+import { invitationsRoutes } from './invitations.routes'
+import { domainRoutes } from './domain.routes'
 
 const router = Router()
 
 router.use(authenticate)
 
 router.use('/support', supportRoutes)
+router.use('/plans', plansRoutes)
+router.use('/showcase', showcaseRoutes)
+router.use('/invitations', invitationsRoutes)
+router.use('/domain', domainRoutes)
 
 // Helper pour obtenir l'organizationId du membre
 async function getOrganizationId(userId: string): Promise<string | null> {
@@ -2796,7 +2804,7 @@ router.put('/settings/moneroo', async (req, res) => {
       })
     }
 
-    const updateData: Record<string, string | boolean> = {
+    const updateData: Record<string, string | boolean | null> = {
       monerooConfigured: true,
     }
 
@@ -2804,9 +2812,15 @@ router.put('/settings/moneroo', async (req, res) => {
       updateData.monerooSecretKey = secretKey
     }
 
-    if (webhookSecret && !webhookSecret.startsWith('••••')) {
+    // Gérer la suppression ou mise à jour du webhook secret
+    if (webhookSecret === '' || webhookSecret === null || webhookSecret === undefined) {
+      // L'utilisateur veut supprimer le webhook secret
+      updateData.monerooWebhookSecret = null
+    } else if (webhookSecret && !webhookSecret.startsWith('••••')) {
+      // Nouvelle valeur (pas masquée)
       updateData.monerooWebhookSecret = webhookSecret
     }
+    // Si webhookSecret commence par '••••', on ne touche pas à la valeur existante
 
     await prisma.resellerOrganization.update({
       where: { id: organizationId },
@@ -2835,22 +2849,31 @@ router.post('/settings/moneroo/test', async (req, res) => {
       return res.status(403).json({ success: false, error: 'NO_ORGANIZATION' })
     }
 
+    console.log('[Moneroo Test] Organization ID:', organizationId)
+
     const organization = await prisma.resellerOrganization.findUnique({
       where: { id: organizationId },
       select: {
         monerooSecretKey: true,
+        monerooConfigured: true,
       }
     })
+
+    console.log('[Moneroo Test] Has secret key:', !!organization?.monerooSecretKey)
+    console.log('[Moneroo Test] Is configured:', organization?.monerooConfigured)
 
     if (!organization?.monerooSecretKey) {
       return res.status(400).json({
         success: false,
         error: 'NOT_CONFIGURED',
-        message: 'Moneroo non configure'
+        message: 'Moneroo non configuré. Veuillez sauvegarder vos clés API d\'abord.'
       })
     }
 
-    const response = await fetch('https://api.moneroo.io/v1/apps/current', {
+    // Tester la connexion en vérifiant un paiement fictif
+    // Si la clé est valide: erreur 404 (paiement non trouvé)
+    // Si la clé est invalide: erreur 401 (non autorisé)
+    const response = await fetch('https://api.moneroo.io/v1/payments/test_connection_check', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${organization.monerooSecretKey}`,
@@ -2858,20 +2881,713 @@ router.post('/settings/moneroo/test', async (req, res) => {
       }
     })
 
-    if (response.ok) {
+    const responseData = await response.json().catch(() => null)
+
+    // 404 = clé valide mais paiement non trouvé (comportement attendu)
+    // 401 = clé invalide
+    // 200 = succès (peu probable avec un ID fictif)
+    if (response.status === 404 || response.ok) {
       res.json({
         success: true,
-        message: 'Connexion Moneroo reussie'
+        message: 'Connexion Moneroo réussie'
+      })
+    } else if (response.status === 401) {
+      res.status(400).json({
+        success: false,
+        error: 'INVALID_API_KEY',
+        message: 'Clé API invalide'
       })
     } else {
+      const errorMessage = (responseData as { message?: string })?.message || 'Échec de connexion - vérifiez vos clés API'
       res.status(400).json({
         success: false,
         error: 'CONNECTION_FAILED',
-        message: 'Echec de connexion - verifiez vos cles API'
+        message: errorMessage
       })
     }
   } catch (error) {
     console.error('Test Moneroo connection error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// ============================================
+// CLIENT SUBSCRIPTIONS (Gestion des abonnements)
+// ============================================
+
+// Modifier un abonnement
+router.put('/subscriptions/:subscriptionId', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { subscriptionId } = req.params
+    const { name, amount, billingCycle, nextBillingDate } = req.body
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    const subscription = await prisma.clientSubscription.findFirst({
+      where: {
+        id: subscriptionId,
+        organizationId: member.organizationId,
+      }
+    })
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'SUBSCRIPTION_NOT_FOUND' })
+    }
+
+    const updated = await prisma.clientSubscription.update({
+      where: { id: subscriptionId },
+      data: {
+        ...(name && { name }),
+        ...(amount !== undefined && { amount }),
+        ...(billingCycle && { billingCycle }),
+        ...(nextBillingDate && { nextBillingDate: new Date(nextBillingDate) }),
+      }
+    })
+
+    await invalidateResellerCache(member.organizationId)
+
+    res.json({
+      success: true,
+      data: {
+        id: updated.id,
+        name: updated.name,
+        amount: Number(updated.amount),
+        currency: updated.currency,
+        billingCycle: updated.billingCycle,
+        status: updated.status,
+        nextBillingDate: updated.nextBillingDate,
+      }
+    })
+  } catch (error) {
+    console.error('Update subscription error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// Annuler un abonnement
+router.post('/subscriptions/:subscriptionId/cancel', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { subscriptionId } = req.params
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    const subscription = await prisma.clientSubscription.findFirst({
+      where: {
+        id: subscriptionId,
+        organizationId: member.organizationId,
+      }
+    })
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'SUBSCRIPTION_NOT_FOUND' })
+    }
+
+    const updated = await prisma.clientSubscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: 'CANCELLED',
+        cancelledAt: new Date(),
+      }
+    })
+
+    await invalidateResellerCache(member.organizationId)
+
+    res.json({
+      success: true,
+      data: {
+        id: updated.id,
+        status: updated.status,
+        cancelledAt: updated.cancelledAt,
+      }
+    })
+  } catch (error) {
+    console.error('Cancel subscription error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// Mettre en pause un abonnement
+router.post('/subscriptions/:subscriptionId/pause', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { subscriptionId } = req.params
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    const subscription = await prisma.clientSubscription.findFirst({
+      where: {
+        id: subscriptionId,
+        organizationId: member.organizationId,
+        status: 'ACTIVE',
+      }
+    })
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'SUBSCRIPTION_NOT_FOUND' })
+    }
+
+    const updated = await prisma.clientSubscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: 'PAUSED',
+      }
+    })
+
+    await invalidateResellerCache(member.organizationId)
+
+    res.json({
+      success: true,
+      data: {
+        id: updated.id,
+        status: updated.status,
+      }
+    })
+  } catch (error) {
+    console.error('Pause subscription error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// Reprendre un abonnement
+router.post('/subscriptions/:subscriptionId/resume', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { subscriptionId } = req.params
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    const subscription = await prisma.clientSubscription.findFirst({
+      where: {
+        id: subscriptionId,
+        organizationId: member.organizationId,
+        status: { in: ['PAUSED', 'PAST_DUE'] },
+      }
+    })
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: 'SUBSCRIPTION_NOT_FOUND' })
+    }
+
+    const updated = await prisma.clientSubscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: 'ACTIVE',
+      }
+    })
+
+    await invalidateResellerCache(member.organizationId)
+
+    res.json({
+      success: true,
+      data: {
+        id: updated.id,
+        status: updated.status,
+      }
+    })
+  } catch (error) {
+    console.error('Resume subscription error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// ============================================
+// CLIENT PAYMENTS (Paiements manuels)
+// ============================================
+
+// Liste des paiements d'un client
+router.get('/clients/:clientId/payments', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { clientId } = req.params
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    // Verifier que le client appartient a l'organisation
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        organizationId: member.organizationId,
+      }
+    })
+
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'CLIENT_NOT_FOUND' })
+    }
+
+    const payments = await prisma.clientPayment.findMany({
+      where: { clientId },
+      orderBy: { receivedAt: 'desc' },
+    })
+
+    res.json({
+      success: true,
+      data: payments.map(p => ({
+        id: p.id,
+        amount: Number(p.amount),
+        currency: p.currency,
+        method: p.method,
+        reference: p.reference,
+        notes: p.notes,
+        receivedAt: p.receivedAt,
+        createdAt: p.createdAt,
+      }))
+    })
+  } catch (error) {
+    console.error('Get client payments error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// Enregistrer un paiement manuel
+router.post('/clients/:clientId/payments', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { clientId } = req.params
+    const { amount, currency = 'XOF', method, reference, notes, receivedAt, invoiceId } = req.body
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, error: 'INVALID_AMOUNT' })
+    }
+
+    if (!method || !['BANK_TRANSFER', 'CHECK', 'CASH', 'CARD', 'OTHER'].includes(method)) {
+      return res.status(400).json({ success: false, error: 'INVALID_METHOD' })
+    }
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    // Verifier que le client appartient a l'organisation
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        organizationId: member.organizationId,
+      }
+    })
+
+    if (!client) {
+      return res.status(404).json({ success: false, error: 'CLIENT_NOT_FOUND' })
+    }
+
+    // Si une facture est liee, verifier qu'elle appartient au client
+    let linkedInvoice = null
+    if (invoiceId) {
+      linkedInvoice = await prisma.clientInvoice.findFirst({
+        where: {
+          id: invoiceId,
+          clientId,
+          organizationId: member.organizationId,
+        }
+      })
+      if (!linkedInvoice) {
+        return res.status(404).json({ success: false, error: 'INVOICE_NOT_FOUND' })
+      }
+    }
+
+    const payment = await prisma.clientPayment.create({
+      data: {
+        organizationId: member.organizationId,
+        clientId,
+        amount,
+        currency,
+        method,
+        reference: reference || null,
+        notes: notes || null,
+        receivedAt: receivedAt ? new Date(receivedAt) : new Date(),
+        invoiceId: invoiceId || null,
+      }
+    })
+
+    // Si une facture est liee, la marquer comme payee
+    if (linkedInvoice) {
+      await prisma.clientInvoice.update({
+        where: { id: invoiceId },
+        data: {
+          status: 'PAID',
+          paidAt: new Date(),
+        }
+      })
+    }
+
+    // Invalider le cache
+    await invalidateResellerCache(member.organizationId)
+
+    res.json({
+      success: true,
+      data: {
+        id: payment.id,
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        method: payment.method,
+        reference: payment.reference,
+        notes: payment.notes,
+        receivedAt: payment.receivedAt,
+        createdAt: payment.createdAt,
+      }
+    })
+  } catch (error) {
+    console.error('Create client payment error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// Supprimer un paiement
+router.delete('/clients/:clientId/payments/:paymentId', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { clientId, paymentId } = req.params
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    // Verifier que le paiement appartient au client et a l'organisation
+    const payment = await prisma.clientPayment.findFirst({
+      where: {
+        id: paymentId,
+        clientId,
+        organizationId: member.organizationId,
+      }
+    })
+
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'PAYMENT_NOT_FOUND' })
+    }
+
+    await prisma.clientPayment.delete({
+      where: { id: paymentId }
+    })
+
+    // Invalider le cache
+    await invalidateResellerCache(member.organizationId)
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Delete client payment error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// ============================================
+// TRANSACTIONS (ShowcasePayment)
+// ============================================
+
+// Liste des transactions (paiements via vitrine)
+router.get('/transactions', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { status, page = '1', limit = '20', search } = req.query
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1)
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string, 10) || 20))
+    const skip = (pageNum - 1) * limitNum
+
+    const where: {
+      organizationId: string
+      status?: ShowcasePaymentStatus
+      OR?: Array<{ email?: { contains: string; mode: 'insensitive' }; firstName?: { contains: string; mode: 'insensitive' }; lastName?: { contains: string; mode: 'insensitive' } }>
+    } = {
+      organizationId: member.organizationId,
+    }
+
+    const validStatuses: ShowcasePaymentStatus[] = ['PENDING', 'PAID', 'ONBOARDING', 'COMPLETED', 'EXPIRED', 'FAILED']
+    if (status && status !== 'all' && validStatuses.includes(status as ShowcasePaymentStatus)) {
+      where.status = status as ShowcasePaymentStatus
+    }
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search as string, mode: 'insensitive' } },
+        { firstName: { contains: search as string, mode: 'insensitive' } },
+        { lastName: { contains: search as string, mode: 'insensitive' } },
+      ]
+    }
+
+    const [transactions, total] = await Promise.all([
+      prisma.showcasePayment.findMany({
+        where,
+        include: {
+          plan: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limitNum,
+      }),
+      prisma.showcasePayment.count({ where })
+    ])
+
+    // Stats (sans filtre de recherche pour avoir les totaux globaux)
+    const statsWhere: { organizationId: string; status?: ShowcasePaymentStatus } = {
+      organizationId: member.organizationId,
+    }
+    if (status && status !== 'all' && validStatuses.includes(status as ShowcasePaymentStatus)) {
+      statsWhere.status = status as ShowcasePaymentStatus
+    }
+
+    const stats = await prisma.showcasePayment.groupBy({
+      by: ['status'],
+      where: statsWhere,
+      _count: true,
+      _sum: { amount: true }
+    })
+
+    const statsMap = {
+      total: { count: 0, amount: 0 },
+      paid: { count: 0, amount: 0 },
+      pending: { count: 0, amount: 0 },
+      failed: { count: 0, amount: 0 },
+    }
+
+    stats.forEach(s => {
+      const amount = Number(s._sum.amount || 0)
+      statsMap.total.count += s._count
+      statsMap.total.amount += amount
+
+      if (s.status === 'PAID' || s.status === 'COMPLETED') {
+        statsMap.paid.count += s._count
+        statsMap.paid.amount += amount
+      } else if (s.status === 'PENDING') {
+        statsMap.pending.count += s._count
+        statsMap.pending.amount += amount
+      } else if (s.status === 'FAILED' || s.status === 'EXPIRED') {
+        statsMap.failed.count += s._count
+        statsMap.failed.amount += amount
+      }
+    })
+
+    res.json({
+      success: true,
+      data: {
+        transactions: transactions.map(t => {
+          const txWithPlan = t as typeof t & { plan?: { id: string; name: string; slug: string } | null }
+          return {
+            id: t.id,
+            email: t.email,
+            firstName: t.firstName,
+            lastName: t.lastName,
+            phone: t.phone,
+            plan: txWithPlan.plan || null,
+            amount: Number(t.amount),
+            currency: t.currency,
+            billingCycle: t.billingCycle,
+            status: t.status,
+            monerooPaymentId: t.monerooPaymentId,
+            monerooStatus: t.monerooStatus,
+            paidAt: t.paidAt,
+            clientId: t.clientId,
+            siteId: t.siteId,
+            createdAt: t.createdAt,
+          }
+        }),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum),
+        },
+        stats: statsMap,
+      }
+    })
+  } catch (error) {
+    console.error('Get transactions error:', error)
+    res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
+  }
+})
+
+// Details d'une transaction
+router.get('/transactions/:transactionId', async (req, res) => {
+  try {
+    const userId = req.user?.userId
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'UNAUTHORIZED' })
+    }
+
+    const { transactionId } = req.params
+
+    const member = await prisma.resellerMember.findUnique({
+      where: { userId },
+      select: { organizationId: true }
+    })
+
+    if (!member) {
+      return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' })
+    }
+
+    const transaction = await prisma.showcasePayment.findFirst({
+      where: {
+        id: transactionId,
+        organizationId: member.organizationId,
+      },
+      include: {
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+          }
+        }
+      }
+    })
+
+    if (!transaction) {
+      return res.status(404).json({ success: false, error: 'TRANSACTION_NOT_FOUND' })
+    }
+
+    // Recuperer le client et site si lies
+    let client = null
+    let site = null
+
+    if (transaction.clientId) {
+      client = await prisma.client.findUnique({
+        where: { id: transaction.clientId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          contactFirstName: true,
+          contactLastName: true,
+          status: true,
+        }
+      })
+    }
+
+    if (transaction.siteId) {
+      site = await prisma.site.findUnique({
+        where: { id: transaction.siteId },
+        select: {
+          id: true,
+          subdomain: true,
+          status: true,
+          restaurant: {
+            select: {
+              name: true,
+            }
+          }
+        }
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: transaction.id,
+        email: transaction.email,
+        firstName: transaction.firstName,
+        lastName: transaction.lastName,
+        phone: transaction.phone,
+        plan: transaction.plan,
+        amount: Number(transaction.amount),
+        currency: transaction.currency,
+        billingCycle: transaction.billingCycle,
+        status: transaction.status,
+        monerooPaymentId: transaction.monerooPaymentId,
+        monerooStatus: transaction.monerooStatus,
+        paidAt: transaction.paidAt,
+        onboardingToken: transaction.onboardingToken,
+        onboardingExpires: transaction.onboardingExpires,
+        client,
+        site,
+        createdAt: transaction.createdAt,
+        updatedAt: transaction.updatedAt,
+      }
+    })
+  } catch (error) {
+    console.error('Get transaction error:', error)
     res.status(500).json({ success: false, error: 'INTERNAL_ERROR' })
   }
 })
