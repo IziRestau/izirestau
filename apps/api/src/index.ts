@@ -19,7 +19,9 @@ import { onboardingRoutes } from './routes/onboarding'
 import { uploadRoutes } from './routes/upload.routes'
 import { twoFactorRoutes } from './routes/auth/two-factor.routes'
 import cronRoutes from './routes/cron.routes'
+import driverRoutes from './routes/driver'
 import { startCronJobs } from './services/cron.service'
+import { authenticate } from './middlewares/auth.middleware'
 
 const app: Express = express()
 const httpServer = createServer(app)
@@ -72,6 +74,7 @@ app.use('/api/onboarding', onboardingRoutes)
 app.use('/api/upload', uploadRoutes)
 app.use('/api/auth/2fa', twoFactorRoutes)
 app.use('/api/cron', cronRoutes)
+app.use('/api/driver', authenticate, driverRoutes)
 
 app.use(errorHandler)
 

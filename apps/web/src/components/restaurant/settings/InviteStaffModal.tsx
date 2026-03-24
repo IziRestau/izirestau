@@ -159,11 +159,8 @@ export function InviteStaffModal({ isOpen, onClose, onSuccess, primaryColor = '#
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button 
               type="button" 
-              variant="outline" 
+              variant="ghost" 
               onClick={handleClose}
-              style={{ borderColor: primaryColor, color: primaryColor }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = `${primaryColor}15` }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
             >
               Annuler
             </Button>

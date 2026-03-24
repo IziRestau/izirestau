@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
+import { useRestaurantCurrency } from '@/hooks/use-restaurant-currency'
 import { toast } from 'sonner'
-import { Truck, Clock, MapPin, DollarSign, Loader2 } from 'lucide-react'
+import { Truck, Clock, MapPin, Loader2 } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { DeliveryZonesManager } from '../delivery/DeliveryZonesManager'
 
 interface DeliverySettingsProps {
   deliverySettings: {
@@ -22,12 +24,22 @@ interface DeliverySettingsProps {
     avgDeliveryTime: number
     autoAssign: boolean
   } | null
+  restaurant: {
+    id: string
+    name: string
+    latitude: number | null
+    longitude: number | null
+  }
   restaurantId: string
   onUpdate: () => void
   primaryColor?: string
 }
 
-export function DeliverySettings({ deliverySettings, restaurantId, onUpdate, primaryColor = '#10b981' }: DeliverySettingsProps) {
+export function DeliverySettings({ deliverySettings, restaurant, restaurantId, onUpdate, primaryColor = '#10b981' }: DeliverySettingsProps) {
+  const restaurantLocation = restaurant.latitude && restaurant.longitude
+    ? { lat: restaurant.latitude, lng: restaurant.longitude, name: restaurant.name }
+    : null
+  const { symbol: currencySymbol } = useRestaurantCurrency()
   const [formData, setFormData] = useState({
     isEnabled: deliverySettings?.isEnabled ?? false,
     baseFee: deliverySettings?.baseFee ?? 2.5,
@@ -135,20 +147,17 @@ export function DeliverySettings({ deliverySettings, restaurantId, onUpdate, pri
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="minOrderAmount">Montant minimum de commande</Label>
-              <div className="relative">
-                <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <Input
-                  id="minOrderAmount"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={formData.minOrderAmount}
-                  onChange={(e) => setFormData({ ...formData, minOrderAmount: parseFloat(e.target.value) || 0 })}
-                  className="h-11 rounded-xl pl-10 focus:ring-2"
-                  style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
-                />
-              </div>
+              <Label htmlFor="minOrderAmount">Montant minimum de commande ({currencySymbol})</Label>
+              <Input
+                id="minOrderAmount"
+                type="number"
+                min={0}
+                step={0.5}
+                value={formData.minOrderAmount}
+                onChange={(e) => setFormData({ ...formData, minOrderAmount: parseFloat(e.target.value) || 0 })}
+                className="h-11 rounded-xl focus:ring-2"
+                style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
+              />
             </div>
           </div>
 
@@ -158,55 +167,46 @@ export function DeliverySettings({ deliverySettings, restaurantId, onUpdate, pri
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="baseFee">Frais de base</Label>
-                <div className="relative">
-                  <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    id="baseFee"
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={formData.baseFee}
-                    onChange={(e) => setFormData({ ...formData, baseFee: parseFloat(e.target.value) || 0 })}
-                    className="h-11 rounded-xl pl-10 focus:ring-2"
-                    style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
-                  />
-                </div>
+                <Label htmlFor="baseFee">Frais de base ({currencySymbol})</Label>
+                <Input
+                  id="baseFee"
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={formData.baseFee}
+                  onChange={(e) => setFormData({ ...formData, baseFee: parseFloat(e.target.value) || 0 })}
+                  className="h-11 rounded-xl focus:ring-2"
+                  style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="feePerKm">Frais par km</Label>
-                <div className="relative">
-                  <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    id="feePerKm"
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    value={formData.feePerKm}
-                    onChange={(e) => setFormData({ ...formData, feePerKm: parseFloat(e.target.value) || 0 })}
-                    className="h-11 rounded-xl pl-10 focus:ring-2"
-                    style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
-                  />
-                </div>
+                <Label htmlFor="feePerKm">Frais par km ({currencySymbol})</Label>
+                <Input
+                  id="feePerKm"
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  value={formData.feePerKm}
+                  onChange={(e) => setFormData({ ...formData, feePerKm: parseFloat(e.target.value) || 0 })}
+                  className="h-11 rounded-xl focus:ring-2"
+                  style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
+                />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="freeDeliveryMin">Livraison gratuite a partir de (optionnel)</Label>
-              <div className="relative">
-                <DollarSign size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <Input
-                  id="freeDeliveryMin"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={formData.freeDeliveryMin?.toString() || ''}
-                  onChange={(e) => setFormData({ ...formData, freeDeliveryMin: e.target.value ? parseFloat(e.target.value) : null })}
-                  placeholder="Pas de livraison gratuite"
-                  className="h-11 rounded-xl pl-10 focus:ring-2"
-                  style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
-                />
-              </div>
+              <Label htmlFor="freeDeliveryMin">Livraison gratuite a partir de ({currencySymbol})</Label>
+              <Input
+                id="freeDeliveryMin"
+                type="number"
+                min={0}
+                step={1}
+                value={formData.freeDeliveryMin?.toString() || ''}
+                onChange={(e) => setFormData({ ...formData, freeDeliveryMin: e.target.value ? parseFloat(e.target.value) : null })}
+                placeholder="Optionnel"
+                className="h-11 rounded-xl focus:ring-2"
+                style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
+              />
               <p className="text-xs text-gray-500">Laissez vide pour desactiver la livraison gratuite</p>
             </div>
           </div>
@@ -227,6 +227,16 @@ export function DeliverySettings({ deliverySettings, restaurantId, onUpdate, pri
               onCheckedChange={(checked) => setFormData({ ...formData, autoAssign: checked })}
               style={{ '--switch-checked-bg': primaryColor } as React.CSSProperties}
               className="data-[state=checked]:bg-[--switch-checked-bg]"
+            />
+          </div>
+
+          {/* Delivery Zones */}
+          <div className="pt-4 border-t border-gray-100">
+            <DeliveryZonesManager
+              restaurantId={restaurantId}
+              restaurantLocation={restaurantLocation}
+              primaryColor={primaryColor}
+              onUpdate={onUpdate}
             />
           </div>
         </>

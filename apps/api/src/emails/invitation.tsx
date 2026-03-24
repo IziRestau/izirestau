@@ -14,26 +14,28 @@ import {
 interface InvitationEmailProps {
   firstName: string
   resellerName: string
+  organizationName: string
   inviteLink: string
 }
 
 export function InvitationEmail({
   firstName,
   resellerName,
+  organizationName,
   inviteLink,
 }: InvitationEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Vous etes invite a rejoindre IziResto</Preview>
+      <Preview>Vous etes invite a rejoindre {organizationName}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>Bienvenue sur IziResto</Heading>
+          <Heading style={h1}>Bienvenue sur {organizationName}</Heading>
           <Text style={text}>
             Bonjour {firstName},
           </Text>
           <Text style={text}>
-            <strong>{resellerName}</strong> vous invite a creer votre compte restaurant sur IziResto.
+            <strong>{resellerName}</strong> vous invite a creer votre compte restaurant sur {organizationName}.
           </Text>
           <Text style={text}>
             Cliquez sur le bouton ci-dessous pour configurer votre restaurant et commencer a recevoir des commandes en ligne.
@@ -50,7 +52,7 @@ export function InvitationEmail({
             Si vous n'avez pas demande cette invitation, vous pouvez ignorer cet email.
           </Text>
           <Text style={footer}>
-            L'equipe IziResto
+            L'equipe {organizationName}
           </Text>
         </Container>
       </Body>

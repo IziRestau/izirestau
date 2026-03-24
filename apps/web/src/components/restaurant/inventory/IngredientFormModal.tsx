@@ -356,9 +356,9 @@ export function IngredientFormModal({
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={onClose}
-              className="h-11 rounded-xl hover:!bg-gray-100 hover:!text-gray-900"
+              className="h-11 rounded-xl"
             >
               Annuler
             </Button>

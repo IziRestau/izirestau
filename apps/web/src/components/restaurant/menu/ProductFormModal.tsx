@@ -696,7 +696,7 @@ export function ProductFormModal({
       <div className="flex gap-2 p-4 border-t border-gray-100">
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           onClick={onClose}
           className="flex-1 h-10 rounded-xl"
           disabled={isLoading}

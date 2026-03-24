@@ -38,7 +38,7 @@ export default function RestaurantLayout({
     if (_hasHydrated && !isAuthRoute) {
       if (!isAuthenticated) {
         router.replace('/restaurant/login')
-      } else if (user?.userType !== 'RESTAURANT') {
+      } else if (user?.userType !== 'RESTAURANT' && user?.userType !== 'DRIVER') {
         router.replace('/restaurant/login')
       } else {
         setIsReady(true)

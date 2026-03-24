@@ -62,7 +62,7 @@ export function StaffInvitationEmail({
             Si vous n'avez pas demande cette invitation, vous pouvez ignorer cet email.
           </Text>
           <Text style={footer}>
-            L'equipe IziResto
+            L'equipe {restaurantName}
           </Text>
         </Container>
       </Body>

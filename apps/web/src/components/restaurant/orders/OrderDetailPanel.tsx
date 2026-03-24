@@ -29,6 +29,8 @@ import {
   Receipt,
   Send,
   FileText,
+  Bike,
+  UserPlus,
 } from 'lucide-react'
 import {
   Sheet,
@@ -41,6 +43,7 @@ import { Separator } from '@/components/ui/separator'
 import { OrderStatusBadge, orderStatusLabels } from './OrderStatusBadge'
 import { ConfirmModal } from '@/components/shared/ConfirmModal'
 import { SendReceiptEmailModal } from './SendReceiptEmailModal'
+import { AssignDriverModal } from '@/components/restaurant/delivery/AssignDriverModal'
 import { cn } from '@/lib/utils'
 
 interface OrderDetailPanelProps {
@@ -101,6 +104,7 @@ export function OrderDetailPanel({
   const [confirmMarkPaid, setConfirmMarkPaid] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [receiptId, setReceiptId] = useState<string | null>(null)
+  const [showAssignDriverModal, setShowAssignDriverModal] = useState(false)
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['restaurant-order', orderId],
@@ -315,6 +319,67 @@ export function OrderDetailPanel({
                   )}
                 </div>
               </div>
+
+              {/* Livreur - pour les commandes DELIVERY */}
+              {order.serviceType === 'DELIVERY' && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Bike size={16} className="text-gray-400" />
+                    Livreur
+                  </h3>
+                  {order.delivery?.driver ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <div 
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {order.delivery.driver.user?.firstName?.[0]}{order.delivery.driver.user?.lastName?.[0]}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">
+                            {order.delivery.driver.user?.firstName} {order.delivery.driver.user?.lastName}
+                          </p>
+                          {order.delivery.driver.user?.phone && (
+                            <p className="text-sm text-gray-500">{order.delivery.driver.user.phone}</p>
+                          )}
+                        </div>
+                        <span className={cn(
+                          "px-2 py-1 rounded-full text-xs font-medium",
+                          order.delivery.status === 'DELIVERED' ? "bg-emerald-100 text-emerald-700" :
+                          order.delivery.status === 'EN_ROUTE' ? "bg-blue-100 text-blue-700" :
+                          "bg-amber-100 text-amber-700"
+                        )}>
+                          {order.delivery.status === 'DELIVERED' ? 'Livre' :
+                           order.delivery.status === 'EN_ROUTE' ? 'En route' :
+                           order.delivery.status === 'PICKED_UP' ? 'Recupere' :
+                           'Assigne'}
+                        </span>
+                      </div>
+                      {/* Bouton pour changer le livreur si pas encore récupéré */}
+                      {['ASSIGNED', 'DRIVER_EN_ROUTE', 'AT_RESTAURANT'].includes(order.delivery.status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAssignDriverModal(true)}
+                          className="w-full text-xs"
+                        >
+                          Changer de livreur
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAssignDriverModal(true)}
+                      className="w-full h-11 rounded-xl border-dashed"
+                    >
+                      <UserPlus size={16} className="mr-2" />
+                      Assigner un livreur
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Articles */}
               <div>
@@ -625,6 +690,26 @@ export function OrderDetailPanel({
             }}
             receiptId={receiptId}
             defaultEmail={order?.customer?.email || order?.guestEmail || ''}
+            primaryColor={primaryColor}
+          />
+        )}
+
+        {/* Modal d'assignation de livreur */}
+        {order && order.serviceType === 'DELIVERY' && (
+          <AssignDriverModal
+            isOpen={showAssignDriverModal}
+            onClose={() => setShowAssignDriverModal(false)}
+            delivery={order.delivery ? {
+              id: order.delivery.id,
+              orderId: order.id,
+              order: { orderNumber: order.orderNumber }
+            } : null}
+            orderId={order.id}
+            onSuccess={() => {
+              setShowAssignDriverModal(false)
+              queryClient.invalidateQueries({ queryKey: ['restaurant-order', orderId] })
+              queryClient.invalidateQueries({ queryKey: ['restaurant-orders'] })
+            }}
             primaryColor={primaryColor}
           />
         )}

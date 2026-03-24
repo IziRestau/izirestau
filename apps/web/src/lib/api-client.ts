@@ -2020,6 +2020,12 @@ export const api = {
     updateCurrency: (data: { currency: string; restaurantId?: string }) =>
       apiClient.put<{ currency: string }>('/restaurant/settings/currency', data),
 
+    geocodeAddress: (address: string) =>
+      apiClient.post<{ latitude: number; longitude: number; displayName: string }>('/restaurant/settings/geocode', { address }),
+
+    reverseGeocodeAddress: (latitude: number, longitude: number) =>
+      apiClient.post<{ address: string | null }>('/restaurant/settings/reverse-geocode', { latitude, longitude }),
+
     canChangeCurrency: (restaurantId?: string) =>
       apiClient.get<{ canChange: boolean; ordersCount: number; message: string }>(
         `/restaurant/settings/currency/can-change${restaurantId ? `?restaurantId=${restaurantId}` : ''}`
@@ -2077,6 +2083,182 @@ export const api = {
       avgDeliveryTime: number
       autoAssign: boolean
     }>('/restaurant/settings/delivery', data),
+
+    // Delivery Zones
+    getDeliveryZones: () => apiClient.get<Array<{
+      id: string
+      name: string
+      polygon: Array<{ lat: number; lng: number }>
+      deliveryFee: number
+      minOrderAmount: number | null
+      estimatedTime: number | null
+      isActive: boolean
+      priority: number
+      createdAt: string
+      updatedAt: string
+    }>>('/restaurant/delivery-zones'),
+
+    createDeliveryZone: (data: {
+      name: string
+      polygon: Array<{ lat: number; lng: number }>
+      addresses?: string[]
+      deliveryFee?: number
+      minOrderAmount?: number
+      estimatedTime?: number
+      priority?: number
+    }) => apiClient.post<{
+      id: string
+      name: string
+      polygon: Array<{ lat: number; lng: number }>
+      addresses: string[] | null
+      deliveryFee: number
+      minOrderAmount: number | null
+      estimatedTime: number | null
+      isActive: boolean
+      priority: number
+      createdAt: string
+      updatedAt: string
+    }>('/restaurant/delivery-zones', data),
+
+    updateDeliveryZone: (id: string, data: {
+      name?: string
+      polygon?: Array<{ lat: number; lng: number }>
+      addresses?: string[]
+      deliveryFee?: number
+      minOrderAmount?: number
+      estimatedTime?: number
+      priority?: number
+      isActive?: boolean
+    }) => apiClient.put<{
+      id: string
+      name: string
+      polygon: Array<{ lat: number; lng: number }>
+      addresses: string[] | null
+      deliveryFee: number
+      minOrderAmount: number | null
+      estimatedTime: number | null
+      isActive: boolean
+      priority: number
+      createdAt: string
+      updatedAt: string
+    }>(`/restaurant/delivery-zones/${id}`, data),
+
+    deleteDeliveryZone: (id: string) => apiClient.delete<{ message: string }>(`/restaurant/delivery-zones/${id}`),
+
+    toggleDeliveryZone: (id: string) => apiClient.put<{
+      id: string
+      isActive: boolean
+    }>(`/restaurant/delivery-zones/${id}/toggle`, {}),
+
+    checkDeliveryZone: (latitude: number, longitude: number) => apiClient.post<{
+      inZone: boolean
+      zone: {
+        id: string
+        name: string
+        deliveryFee: number
+        minOrderAmount: number | null
+        estimatedTime: number | null
+      } | null
+    }>('/restaurant/delivery-zones/check', { latitude, longitude }),
+
+    // Drivers
+    getDrivers: () => apiClient.get<Array<{
+      id: string
+      userId: string
+      user: {
+        id: string
+        email: string
+        firstName: string
+        lastName: string
+        phone: string | null
+        avatar: string | null
+      }
+      invitePending: boolean
+      inviteExpired: boolean
+      licenseNumber: string | null
+      vehicleType: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      vehiclePlate: string | null
+      isActive: boolean
+      isOnline: boolean
+      isAvailable: boolean
+      currentLatitude: number | null
+      currentLongitude: number | null
+      lastLocationUpdate: string | null
+      totalDeliveries: number
+      avgRating: number | null
+      currentDeliveryId: string | null
+      createdAt: string
+      updatedAt: string
+    }>>('/restaurant/drivers'),
+
+    resendDriverInvite: (id: string) => apiClient.post<{ message: string }>(`/restaurant/drivers/${id}/resend-invite`),
+
+    getAvailableDrivers: () => apiClient.get<Array<{
+      id: string
+      user: {
+        id: string
+        firstName: string
+        lastName: string
+        phone: string | null
+        avatar: string | null
+      }
+      vehicleType: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      currentLatitude: number | null
+      currentLongitude: number | null
+      totalDeliveries: number
+      avgRating: number | null
+    }>>('/restaurant/drivers/available'),
+
+    createDriver: (data: {
+      email: string
+      firstName: string
+      lastName: string
+      phone?: string
+      licenseNumber?: string
+      vehicleType?: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      vehiclePlate?: string
+    }) => apiClient.post<{
+      id: string
+      userId: string
+      user: {
+        id: string
+        email: string
+        firstName: string
+        lastName: string
+        phone: string | null
+        avatar: string | null
+      }
+      licenseNumber: string | null
+      vehicleType: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      vehiclePlate: string | null
+      isActive: boolean
+      isOnline: boolean
+      isAvailable: boolean
+      totalDeliveries: number
+      avgRating: number | null
+      createdAt: string
+    }>('/restaurant/drivers', data),
+
+    updateDriver: (id: string, data: {
+      licenseNumber?: string
+      vehicleType?: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      vehiclePlate?: string
+      isActive?: boolean
+    }) => apiClient.put<{
+      id: string
+      licenseNumber: string | null
+      vehicleType: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      vehiclePlate: string | null
+      isActive: boolean
+      updatedAt: string
+    }>(`/restaurant/drivers/${id}`, data),
+
+    deleteDriver: (id: string) => apiClient.delete<{ message: string }>(`/restaurant/drivers/${id}`),
+
+    toggleDriverStatus: (id: string) => apiClient.put<{
+      id: string
+      isActive: boolean
+    }>(`/restaurant/drivers/${id}/status`, {}),
 
     updateOpeningHours: (openingHours: Array<{
       dayOfWeek: number
@@ -4389,5 +4571,107 @@ export const api = {
         }>(`/store/${subdomain}/account/loyalty/calculate`, { pointsToUse, subtotal })
       },
     },
+  },
+
+  driver: {
+    getMe: () => apiClient.get<{
+      id: string
+      user: {
+        id: string
+        email: string
+        firstName: string
+        lastName: string
+        phone: string | null
+        avatar: string | null
+      }
+      restaurant: {
+        id: string
+        name: string
+        address: string | null
+        phone: string | null
+        logo: string | null
+      }
+      vehicleType: 'BIKE' | 'SCOOTER' | 'CAR' | 'WALK'
+      vehiclePlate: string | null
+      licenseNumber: string | null
+      isActive: boolean
+      isOnline: boolean
+      isAvailable: boolean
+      totalDeliveries: number
+      avgRating: number | null
+      currentDeliveryId: string | null
+    }>('/driver/me'),
+
+    updateStatus: (data: { isOnline?: boolean; isAvailable?: boolean }) =>
+      apiClient.put<{ id: string; isOnline: boolean; isAvailable: boolean }>('/driver/status', data),
+
+    updateLocation: (data: { latitude: number; longitude: number }) =>
+      apiClient.put<{ currentLatitude: number; currentLongitude: number; lastLocationUpdate: string }>('/driver/location', data),
+
+    getDeliveries: (status?: 'active' | 'completed') =>
+      apiClient.get<Array<{
+        id: string
+        status: string
+        order: {
+          id: string
+          orderNumber: string
+          subtotal: number
+          customer: {
+            firstName: string
+            lastName: string
+            phone: string | null
+          }
+        }
+        address: unknown
+        latitude: number | null
+        longitude: number | null
+        estimatedTime: number | null
+        pickedUpAt: string | null
+        deliveredAt: string | null
+        customerRating: number | null
+        customerFeedback: string | null
+        createdAt: string
+      }>>(`/driver/deliveries${status ? `?status=${status}` : ''}`),
+
+    getCurrentDelivery: () =>
+      apiClient.get<{
+        id: string
+        status: string
+        order: {
+          id: string
+          orderNumber: string
+          subtotal: number
+          customer: {
+            firstName: string
+            lastName: string
+            phone: string | null
+          }
+          items: Array<{
+            id: string
+            quantity: number
+            product: { name: string }
+          }>
+          restaurant: {
+            name: string
+            address: string | null
+            phone: string | null
+          }
+        }
+        address: unknown
+        latitude: number | null
+        longitude: number | null
+        estimatedTime: number | null
+      } | null>('/driver/deliveries/current'),
+
+    updateDeliveryStatus: (id: string, status: string) =>
+      apiClient.put<{ id: string; status: string }>(`/driver/deliveries/${id}/status`, { status }),
+
+    getStats: () =>
+      apiClient.get<{
+        totalDeliveries: number
+        avgRating: number | null
+        todayDeliveries: number
+        weekDeliveries: number
+      }>('/driver/stats'),
   },
 }

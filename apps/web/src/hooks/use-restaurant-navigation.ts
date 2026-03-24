@@ -14,6 +14,7 @@ import {
   ChefHat,
   Globe,
   Megaphone,
+  Bike,
   LucideIcon,
 } from 'lucide-react'
 import { useRestaurantPermissions } from './use-restaurant-permissions'
@@ -38,7 +39,28 @@ export function useRestaurantNavigation(): NavGroup[] {
     canManageMenu, 
     canViewCustomers, 
     canViewRevenue,
+    isDriver,
   } = useRestaurantPermissions()
+
+  // Navigation spécifique pour les livreurs
+  if (isDriver) {
+    return [
+      {
+        title: 'Principal',
+        items: [
+          { label: 'Tableau de bord', href: '/restaurant', icon: LayoutDashboard },
+          { label: 'Mes livraisons', href: '/restaurant/delivery', icon: Bike },
+        ],
+      },
+      {
+        title: 'Outils',
+        items: [
+          { label: 'Support', href: '/restaurant/support', icon: MessageSquare },
+          { label: 'Mon profil', href: '/restaurant/settings', icon: Settings },
+        ],
+      },
+    ]
+  }
 
   const navigation: NavGroup[] = [
     {
@@ -90,6 +112,17 @@ export function useRestaurantNavigation(): NavGroup[] {
             { label: 'Avis clients', href: '/restaurant/marketing/reviews' },
             { label: 'Fidélité', href: '/restaurant/marketing/loyalty' },
             { label: 'Réglages', href: '/restaurant/marketing/settings' },
+          ]
+        }] : []),
+        // Livraison visible pour OWNER et MANAGER
+        ...(canManageMenu ? [{
+          label: 'Livraison',
+          href: '/restaurant/delivery',
+          icon: Truck,
+          children: [
+            { label: 'Livraisons', href: '/restaurant/delivery' },
+            { label: 'Livreurs', href: '/restaurant/delivery/drivers' },
+            { label: 'Zones', href: '/restaurant/delivery/zones' },
           ]
         }] : []),
       ],
@@ -160,6 +193,16 @@ export const restaurantNavigationStatic: NavGroup[] = [
           { label: 'Avis clients', href: '/restaurant/marketing/reviews' },
           { label: 'Fidélité', href: '/restaurant/marketing/loyalty' },
           { label: 'Réglages', href: '/restaurant/marketing/settings' },
+        ]
+      },
+      {
+        label: 'Livraison',
+        href: '/restaurant/delivery',
+        icon: Truck,
+        children: [
+          { label: 'Livraisons', href: '/restaurant/delivery' },
+          { label: 'Livreurs', href: '/restaurant/delivery/drivers' },
+          { label: 'Zones', href: '/restaurant/delivery/zones' },
         ]
       },
     ],

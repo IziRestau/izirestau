@@ -60,14 +60,14 @@ export default function RestaurantLoginPage() {
       await login(email, password)
       const { user } = useAuthStore.getState()
       
-      if (user?.userType !== 'RESTAURANT') {
+      if (user?.userType === 'RESTAURANT' || user?.userType === 'DRIVER') {
+        toast.success('Connexion reussie')
+        router.push('/restaurant')
+      } else {
         toast.error('Acces non autorise pour ce type de compte')
         useAuthStore.getState().logout()
         return
       }
-      
-      toast.success('Connexion reussie')
-      router.push('/restaurant')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Une erreur est survenue')
     } finally {

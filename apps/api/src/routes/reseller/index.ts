@@ -460,7 +460,8 @@ router.post('/clients', async (req, res) => {
         email,
         contactFirstName || 'Cher propriétaire',
         organization?.name || 'Votre revendeur',
-        inviteUrl
+        inviteUrl,
+        organization?.name
       )
 
       console.log('Invitation sent to:', email)
@@ -525,7 +526,8 @@ router.post('/clients/:clientId/resend-invitation', async (req, res) => {
       client.email,
       client.contactFirstName,
       member.organization.name,
-      inviteUrl
+      inviteUrl,
+      member.organization.name
     )
 
     console.log('Invitation resent to:', client.email, 'New token:', inviteToken)
@@ -2148,7 +2150,7 @@ router.post('/settings/members/invite', async (req, res) => {
     })
 
     const inviteLink = `${process.env.FRONTEND_URL}/invite/${inviteToken}`
-    await sendInvitationEmail(email, firstName, org?.name || 'IziResto', inviteLink)
+    await sendInvitationEmail(email, firstName, org?.name || 'Votre revendeur', inviteLink, org?.name)
 
     res.json({ success: true, message: 'Invitation envoyee' })
   } catch (error) {

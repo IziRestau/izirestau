@@ -424,6 +424,133 @@ router.put('/restaurant', requireRole('OWNER', 'MANAGER'), async (req: Request, 
   }
 })
 
+// POST /restaurant/settings/geocode - Geocoder une adresse
+router.post('/geocode', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { address } = req.body
+
+    if (!address || typeof address !== 'string') {
+      return next(new AppError('Adresse requise', 400, 'ADDRESS_REQUIRED'))
+    }
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+      {
+        headers: {
+          'Accept-Language': 'fr',
+          'User-Agent': 'IziResto/1.0',
+        },
+      }
+    )
+
+    const data = await response.json() as Array<{ lat: string; lon: string; display_name: string }>
+
+    if (data && data.length > 0) {
+      const { lat, lon, display_name } = data[0]
+      return res.json({
+        success: true,
+        data: {
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon),
+          displayName: display_name,
+        },
+      })
+    }
+
+    return res.json({
+      success: false,
+      error: 'ADDRESS_NOT_FOUND',
+      message: 'Adresse non trouvee',
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// POST /restaurant/settings/reverse-geocode - Reverse geocoder des coordonnees
+router.post('/reverse-geocode', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { latitude, longitude } = req.body
+
+    if (latitude === undefined || longitude === undefined) {
+      return next(new AppError('Latitude et longitude requises', 400, 'COORDINATES_REQUIRED'))
+    }
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': 'fr',
+          'User-Agent': 'IziResto/1.0 (contact@iziresto.com)',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      return res.json({
+        success: false,
+        data: { address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` },
+      })
+    }
+
+    const text = await response.text()
+    
+    if (text.startsWith('<') || !text.startsWith('{')) {
+      return res.json({
+        success: false,
+        data: { address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` },
+      })
+    }
+
+    const data = JSON.parse(text) as {
+      address?: {
+        house_number?: string
+        road?: string
+        suburb?: string
+        city?: string
+        town?: string
+        village?: string
+      }
+      display_name?: string
+      error?: string
+    }
+
+    if (data.error) {
+      return res.json({
+        success: false,
+        data: { address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` },
+      })
+    }
+
+    if (data.address) {
+      const parts = []
+      if (data.address.house_number) parts.push(data.address.house_number)
+      if (data.address.road) parts.push(data.address.road)
+      if (data.address.suburb) parts.push(data.address.suburb)
+      if (data.address.city || data.address.town || data.address.village) {
+        parts.push(data.address.city || data.address.town || data.address.village)
+      }
+      const address = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(',') || null
+
+      return res.json({
+        success: true,
+        data: { address },
+      })
+    }
+
+    return res.json({
+      success: false,
+      data: { address: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` },
+    })
+  } catch (error) {
+    return res.json({
+      success: false,
+      data: { address: null },
+    })
+  }
+})
+
 // PUT /restaurant/settings/currency - Mettre a jour la devise (OWNER uniquement)
 router.put('/currency', requireRole('OWNER'), async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -2,8 +2,12 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { useNavigationStore } from '@/stores/navigation.store'
+import { useRestaurantPermissions, roleLabels } from '@/hooks/use-restaurant-permissions'
+import { api, apiClient } from '@/lib/api-client'
+import { toast } from 'sonner'
 import { 
   Search, 
   Bell, 
@@ -15,6 +19,9 @@ import {
   MessageSquare,
   Calculator,
   ArrowLeft,
+  Wifi,
+  WifiOff,
+  Loader2,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -25,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { LogoutModal } from '@/components/shared/LogoutModal'
 import { SearchModal } from '@/components/shared/SearchModal'
+import { Switch } from '@/components/ui/switch'
 
 interface HeaderProps {
   title?: string
@@ -41,8 +49,38 @@ export function Header({ title, subtitle, pageTitle, primaryColor, actions }: He
   const pathname = usePathname()
   const { user, logout } = useAuthStore()
   const { push, goBack, canGoBack } = useNavigationStore()
+  const { role, isDriver } = useRestaurantPermissions()
+  const { accessToken } = useAuthStore()
+  const queryClient = useQueryClient()
   const [searchOpen, setSearchOpen] = useState(false)
   const [logoutModalOpen, setLogoutModalOpen] = useState(false)
+
+  // Query pour le statut du livreur
+  const { data: driverStatus } = useQuery({
+    queryKey: ['driver-status'],
+    queryFn: async () => {
+      if (accessToken) apiClient.setAccessToken(accessToken)
+      const res = await api.driver.getMe()
+      return res.data
+    },
+    enabled: isDriver && !!accessToken,
+    staleTime: 30 * 1000,
+  })
+
+  // Mutation pour changer le statut
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (isOnline: boolean) => {
+      if (accessToken) apiClient.setAccessToken(accessToken)
+      return api.driver.updateStatus({ isOnline })
+    },
+    onSuccess: (_, isOnline) => {
+      queryClient.invalidateQueries({ queryKey: ['driver-status'] })
+      toast.success(isOnline ? 'Vous etes maintenant en ligne' : 'Vous etes maintenant hors ligne')
+    },
+    onError: () => {
+      toast.error('Erreur lors du changement de statut')
+    },
+  })
 
   useEffect(() => {
     if (pathname) {
@@ -59,7 +97,7 @@ export function Header({ title, subtitle, pageTitle, primaryColor, actions }: He
     logout()
     setLogoutModalOpen(false)
     
-    if (userType === 'RESTAURANT') {
+    if (userType === 'RESTAURANT' || userType === 'DRIVER') {
       window.location.href = '/restaurant/login'
     } else if (userType === 'PLATFORM') {
       window.location.href = '/platform/login'
@@ -140,6 +178,30 @@ export function Header({ title, subtitle, pageTitle, primaryColor, actions }: He
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Toggle En ligne / Hors ligne pour livreurs */}
+          {isDriver && (
+            <div className="flex items-center gap-2 h-10 lg:h-11 px-3 bg-gray-50 border border-gray-100 rounded-xl">
+              <div className="flex items-center gap-1.5">
+                {toggleStatusMutation.isPending ? (
+                  <Loader2 size={16} className="text-gray-400 animate-spin" />
+                ) : driverStatus?.isOnline ? (
+                  <Wifi size={16} className="text-emerald-500" />
+                ) : (
+                  <WifiOff size={16} className="text-gray-400" />
+                )}
+                <span className={`text-xs font-medium hidden sm:block ${driverStatus?.isOnline ? 'text-emerald-600' : 'text-gray-500'}`}>
+                  {driverStatus?.isOnline ? 'En ligne' : 'Hors ligne'}
+                </span>
+              </div>
+              <Switch
+                checked={driverStatus?.isOnline || false}
+                onCheckedChange={(checked) => toggleStatusMutation.mutate(checked)}
+                disabled={toggleStatusMutation.isPending}
+                className="data-[state=checked]:bg-emerald-500"
+              />
+            </div>
+          )}
+
           <button 
             onClick={() => setSearchOpen(true)}
             className="relative h-10 lg:h-11 hidden sm:block"
@@ -157,27 +219,31 @@ export function Header({ title, subtitle, pageTitle, primaryColor, actions }: He
             <Search size={20} className="text-gray-500" />
           </button>
 
-          <button 
-            onClick={() => router.push('/restaurant/pos')}
-            className="hidden md:flex w-10 lg:w-11 h-10 lg:h-11 rounded-xl items-center justify-center transition-colors"
-            style={pathname?.includes('/pos') ? {
-              backgroundColor: `${accentColor}15`,
-              borderColor: accentColor,
-              borderWidth: '1px',
-              borderStyle: 'solid',
-            } : {
-              backgroundColor: '#f9fafb',
-              borderColor: '#f3f4f6',
-              borderWidth: '1px',
-              borderStyle: 'solid',
-            }}
-            title="Caisse"
-          >
-            <Calculator size={20} style={{ color: pathname?.includes('/pos') ? accentColor : '#6b7280' }} />
-          </button>
-          <button className="hidden md:flex w-10 lg:w-11 h-10 lg:h-11 bg-gray-50 border border-gray-100 rounded-xl items-center justify-center hover:bg-gray-100 transition-colors">
-            <MessageSquare size={20} className="text-gray-500" />
-          </button>
+          {!isDriver && (
+            <>
+              <button 
+                onClick={() => router.push('/restaurant/pos')}
+                className="hidden md:flex w-10 lg:w-11 h-10 lg:h-11 rounded-xl items-center justify-center transition-colors"
+                style={pathname?.includes('/pos') ? {
+                  backgroundColor: `${accentColor}15`,
+                  borderColor: accentColor,
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                } : {
+                  backgroundColor: '#f9fafb',
+                  borderColor: '#f3f4f6',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                }}
+                title="Caisse"
+              >
+                <Calculator size={20} style={{ color: pathname?.includes('/pos') ? accentColor : '#6b7280' }} />
+              </button>
+              <button className="hidden md:flex w-10 lg:w-11 h-10 lg:h-11 bg-gray-50 border border-gray-100 rounded-xl items-center justify-center hover:bg-gray-100 transition-colors">
+                <MessageSquare size={20} className="text-gray-500" />
+              </button>
+            </>
+          )}
           <button className="w-10 lg:w-11 h-10 lg:h-11 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors">
             <Bell size={20} className="text-gray-500" />
           </button>
@@ -190,7 +256,7 @@ export function Header({ title, subtitle, pageTitle, primaryColor, actions }: He
                   <div className="text-xs lg:text-sm font-medium text-gray-900 leading-tight">
                     {user?.firstName} {user?.lastName}
                   </div>
-                  <div className="text-[10px] lg:text-[11px] text-gray-500 leading-tight">Admin</div>
+                  <div className="text-[10px] lg:text-[11px] text-gray-500 leading-tight">{roleLabels[role as keyof typeof roleLabels] || 'Staff'}</div>
                 </div>
                 <ChevronDown size={16} className="text-gray-400 hidden sm:block" />
               </button>

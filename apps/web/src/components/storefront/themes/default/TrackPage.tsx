@@ -5,6 +5,7 @@ import type { TrackPageProps } from '../_types'
 import { TrackHeaderSection } from './sections/track/TrackHeaderSection'
 import { TrackProgressSection } from './sections/track/TrackProgressSection'
 import { TrackInfoSection } from './sections/track/TrackInfoSection'
+import { TrackDeliverySection } from './sections/track/TrackDeliverySection'
 import { TrackOrderDetailsSection } from './sections/track/TrackOrderDetailsSection'
 import { TrackRestaurantSection } from './sections/track/TrackRestaurantSection'
 import { TrackActionsSection } from './sections/track/TrackActionsSection'
@@ -51,6 +52,14 @@ export function TrackPage({
         order={order}
         sectionData={sections?.info}
       />
+
+      {order.serviceType === 'DELIVERY' && order.delivery && (
+        <TrackDeliverySection
+          theme={theme}
+          delivery={order.delivery}
+          sectionData={sections?.delivery}
+        />
+      )}
 
       <TrackOrderDetailsSection
         theme={theme}

@@ -315,20 +315,10 @@ export function CustomerFormModal({
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button 
               type="button" 
-              variant="outline" 
+              variant="ghost" 
               onClick={onClose} 
               disabled={isLoading} 
-              className="h-11 rounded-xl transition-colors"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = `${primaryColor}15`
-                e.currentTarget.style.borderColor = primaryColor
-                e.currentTarget.style.color = primaryColor
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = ''
-                e.currentTarget.style.borderColor = ''
-                e.currentTarget.style.color = ''
-              }}
+              className="h-11 rounded-xl"
             >
               Annuler
             </Button>

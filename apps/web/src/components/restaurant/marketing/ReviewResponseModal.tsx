@@ -161,10 +161,10 @@ export function ReviewResponseModal({
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={onClose}
                 disabled={updateMutation.isPending}
-                className="h-11 rounded-xl hover:!bg-gray-100 hover:!text-gray-900"
+                className="h-11 rounded-xl"
               >
                 Annuler
               </Button>

@@ -16,6 +16,9 @@ import { recipesRoutes } from './recipes.routes'
 import { receiptsRoutes } from './receipts.routes'
 import { siteRoutes } from './site.routes'
 import { marketingRoutes } from './marketing.routes'
+import deliveryZonesRoutes from './delivery-zones.routes'
+import driversRoutes from './drivers.routes'
+import deliveriesRoutes from './deliveries.routes'
 import { receiptService } from '../../services/receipt.service'
 import { sendLoyaltyPointsEarnedEmail, sendReceiptEmail } from '../../services/email.service'
 
@@ -67,7 +70,16 @@ router.use('/site', siteRoutes)
 // Routes marketing
 router.use('/marketing', marketingRoutes)
 
-// GET /restaurant/my-restaurants - Liste des restaurants de l'utilisateur (pour OWNER multi-restaurant)
+// Routes delivery zones
+router.use('/delivery-zones', deliveryZonesRoutes)
+
+// Routes drivers
+router.use('/drivers', driversRoutes)
+
+// Routes deliveries
+router.use('/deliveries', deliveriesRoutes)
+
+// GET /restaurant/my-restaurants - Liste des restaurants de l'utilisateur (pour OWNER multi-restaurant et livreurs)
 router.get('/my-restaurants', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?.userId
@@ -101,7 +113,33 @@ router.get('/my-restaurants', async (req: Request, res: Response, next: NextFunc
       orderBy: { createdAt: 'asc' },
     })
 
-    const restaurants = staffEntries
+    // Récupérer aussi les restaurants où l'utilisateur est livreur
+    const driverEntries = await prisma.driver.findMany({
+      where: { userId, isActive: true },
+      include: {
+        restaurant: {
+          include: {
+            site: {
+              include: {
+                organization: {
+                  select: {
+                    id: true,
+                    name: true,
+                    slug: true,
+                    logo: true,
+                    primaryColor: true,
+                    currency: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    const restaurantsFromStaff = staffEntries
       .filter(s => s.restaurant)
       .map(s => ({
         id: s.restaurant.id,
@@ -117,9 +155,33 @@ router.get('/my-restaurants', async (req: Request, res: Response, next: NextFunc
         } : null,
       }))
 
+    const restaurantsFromDriver = driverEntries
+      .filter(d => d.restaurant)
+      .map(d => ({
+        id: d.restaurant.id,
+        name: d.restaurant.name,
+        logo: d.restaurant.logo,
+        address: d.restaurant.address,
+        city: d.restaurant.city,
+        role: 'DRIVER',
+        organization: d.restaurant.site?.organization ? {
+          id: d.restaurant.site.organization.id,
+          name: d.restaurant.site.organization.name,
+          primaryColor: d.restaurant.site.organization.primaryColor,
+        } : null,
+      }))
+
+    // Fusionner et dédupliquer (un utilisateur pourrait être staff ET driver)
+    const allRestaurants = [...restaurantsFromStaff]
+    for (const driverRestaurant of restaurantsFromDriver) {
+      if (!allRestaurants.find(r => r.id === driverRestaurant.id)) {
+        allRestaurants.push(driverRestaurant)
+      }
+    }
+
     res.json({
       success: true,
-      data: restaurants,
+      data: allRestaurants,
     })
   } catch (error) {
     next(error)
@@ -136,10 +198,9 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
 
     const { restaurantId } = req.query
 
+    // D'abord chercher si l'utilisateur est un staff
     let staff
-
     if (restaurantId) {
-      // Si un restaurantId est spécifié, vérifier que l'utilisateur y a accès
       staff = await prisma.restaurantStaff.findFirst({
         where: { 
           restaurantId: restaurantId as string,
@@ -171,7 +232,6 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
         },
       })
     } else {
-      // Sinon, prendre le premier restaurant de l'utilisateur
       staff = await prisma.restaurantStaff.findFirst({
         where: { userId, isActive: true },
         include: {
@@ -201,7 +261,118 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
       })
     }
 
-    if (!staff || !staff.restaurant) {
+    // Si pas de staff, chercher si l'utilisateur est un livreur
+    if (!staff) {
+      let driver
+      if (restaurantId) {
+        driver = await prisma.driver.findFirst({
+          where: {
+            restaurantId: restaurantId as string,
+            userId,
+            isActive: true,
+          },
+          include: {
+            restaurant: {
+              include: {
+                site: {
+                  include: {
+                    organization: {
+                      select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        logo: true,
+                        primaryColor: true,
+                        currency: true,
+                        email: true,
+                        phone: true,
+                      },
+                    },
+                  },
+                },
+                settings: true,
+              },
+            },
+          },
+        })
+      } else {
+        driver = await prisma.driver.findFirst({
+          where: { userId, isActive: true },
+          include: {
+            restaurant: {
+              include: {
+                site: {
+                  include: {
+                    organization: {
+                      select: {
+                        id: true,
+                        name: true,
+                        slug: true,
+                        logo: true,
+                        primaryColor: true,
+                        currency: true,
+                        email: true,
+                        phone: true,
+                      },
+                    },
+                  },
+                },
+                settings: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        })
+      }
+
+      if (driver && driver.restaurant) {
+        const { restaurant } = driver
+        const site = restaurant.site
+        const organization = site?.organization
+
+        return res.json({
+          success: true,
+          data: {
+            restaurant: {
+              id: restaurant.id,
+              name: restaurant.name,
+              description: restaurant.description,
+              email: restaurant.email,
+              phone: restaurant.phone,
+              address: restaurant.address,
+              city: restaurant.city,
+              postalCode: restaurant.postalCode,
+              country: restaurant.country,
+              logo: restaurant.logo,
+              coverImage: restaurant.coverImage,
+              businessType: restaurant.businessType,
+              cuisineTypes: restaurant.cuisineTypes,
+            },
+            organization: organization ? {
+              id: organization.id,
+              name: organization.name,
+              slug: organization.slug,
+              logo: organization.logo,
+              primaryColor: organization.primaryColor,
+              currency: organization.currency,
+            } : null,
+            site: site ? {
+              id: site.id,
+              subdomain: site.subdomain,
+              customDomain: site.customDomain,
+              status: site.status,
+            } : null,
+            staff: {
+              id: driver.id,
+              role: 'DRIVER',
+              permissions: ['view_deliveries', 'update_delivery_status'],
+              position: 'Livreur',
+            },
+            settings: restaurant.settings,
+          },
+        })
+      }
+
       return next(new AppError('Restaurant non trouvé', 404, 'NOT_FOUND'))
     }
 
@@ -880,6 +1051,23 @@ router.get('/orders/:id', async (req: Request, res: Response, next: NextFunction
         coupon: {
           select: { id: true, code: true, discountType: true, discountValue: true },
         },
+        delivery: {
+          include: {
+            driver: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     })
 
@@ -961,6 +1149,25 @@ router.get('/orders/:id', async (req: Request, res: Response, next: NextFunction
           userId: t.userId,
           createdAt: t.createdAt,
         })),
+        delivery: order.delivery ? {
+          id: order.delivery.id,
+          status: order.delivery.status,
+          address: order.delivery.address,
+          assignedAt: order.delivery.assignedAt,
+          pickedUpAt: order.delivery.pickedUpAt,
+          deliveredAt: order.delivery.deliveredAt,
+          driver: order.delivery.driver ? {
+            id: order.delivery.driver.id,
+            user: {
+              id: order.delivery.driver.user.id,
+              firstName: order.delivery.driver.user.firstName,
+              lastName: order.delivery.driver.user.lastName,
+              phone: order.delivery.driver.user.phone,
+              avatar: order.delivery.driver.user.avatar,
+            },
+            vehicleType: order.delivery.driver.vehicleType,
+          } : null,
+        } : null,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
       },
@@ -2035,6 +2242,70 @@ router.post('/orders/:id/close', async (req: Request, res: Response, next: NextF
           receiptNumber: receipt.receiptNumber,
           type: receipt.type,
         } : null,
+      },
+    })
+  } catch (error) {
+    next(error)
+  }
+})
+
+// POST /restaurant/orders/:id/create-delivery - Créer une livraison pour une commande
+router.post('/orders/:id/create-delivery', requireRole('OWNER', 'MANAGER'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const staff = req.restaurantStaff!
+    const orderId = req.params.id
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        restaurantId: staff.restaurantId,
+        serviceType: 'DELIVERY',
+      },
+    })
+
+    if (!order) {
+      return next(new AppError('Commande non trouvée ou pas une livraison', 404, 'NOT_FOUND'))
+    }
+
+    // Vérifier si une livraison existe déjà
+    const existingDelivery = await prisma.delivery.findUnique({
+      where: { orderId },
+    })
+
+    if (existingDelivery) {
+      // Retourner la livraison existante au lieu d'une erreur
+      return res.json({
+        success: true,
+        data: {
+          id: existingDelivery.id,
+          orderId: existingDelivery.orderId,
+          status: existingDelivery.status,
+          address: existingDelivery.address,
+          createdAt: existingDelivery.createdAt,
+        },
+      })
+    }
+
+    const delivery = await prisma.delivery.create({
+      data: {
+        orderId,
+        address: order.deliveryAddress || {},
+        customerNotes: order.deliveryNotes,
+        trackingHistory: [{
+          status: 'PENDING',
+          timestamp: new Date().toISOString(),
+        }],
+      },
+    })
+
+    res.status(201).json({
+      success: true,
+      data: {
+        id: delivery.id,
+        orderId: delivery.orderId,
+        status: delivery.status,
+        address: delivery.address,
+        createdAt: delivery.createdAt,
       },
     })
   } catch (error) {

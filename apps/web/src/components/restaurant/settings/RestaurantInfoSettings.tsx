@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api, MediaItem } from '@/lib/api-client'
 import { toast } from 'sonner'
-import { Store, Mail, Phone, Globe, MapPin, Building2, FileText, Camera, Loader2, FolderOpen } from 'lucide-react'
+import { Store, Mail, Phone, Globe, MapPin, Building2, FileText, Camera, Loader2, FolderOpen, Navigation, Search } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -76,6 +76,8 @@ export function RestaurantInfoSettings({ restaurant, onUpdate, primaryColor = '#
     city: restaurant.city,
     postalCode: restaurant.postalCode,
     country: restaurant.country,
+    latitude: restaurant.latitude,
+    longitude: restaurant.longitude,
     businessName: restaurant.businessName || '',
     siret: restaurant.siret || '',
     vatNumber: restaurant.vatNumber || '',
@@ -84,12 +86,19 @@ export function RestaurantInfoSettings({ restaurant, onUpdate, primaryColor = '#
     logo: restaurant.logo || '',
   })
 
+  const [isGeolocating, setIsGeolocating] = useState(false)
+
   const [logoPreview, setLogoPreview] = useState<string | null>(restaurant.logo)
   const [showMediaSelector, setShowMediaSelector] = useState(false)
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return api.restaurant.updateRestaurantInfo({ ...data, restaurantId: restaurant.id })
+      return api.restaurant.updateRestaurantInfo({
+        ...data,
+        latitude: data.latitude ?? undefined,
+        longitude: data.longitude ?? undefined,
+        restaurantId: restaurant.id,
+      })
     },
     onSuccess: () => {
       toast.success('Informations mises à jour')
@@ -151,6 +160,29 @@ export function RestaurantInfoSettings({ restaurant, onUpdate, primaryColor = '#
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     updateMutation.mutate(formData)
+  }
+
+  const geocodeAddress = async () => {
+    const fullAddress = `${formData.address}, ${formData.postalCode} ${formData.city}, ${formData.country}`
+    setIsGeolocating(true)
+    try {
+      const response = await api.restaurant.geocodeAddress(fullAddress)
+      const data = response.data
+      if (data?.latitude && data?.longitude) {
+        setFormData(prev => ({
+          ...prev,
+          latitude: data.latitude,
+          longitude: data.longitude,
+        }))
+        toast.success('Coordonnees GPS trouvees')
+      } else {
+        toast.error('Adresse non trouvee')
+      }
+    } catch {
+      toast.error('Erreur lors de la geolocalisation')
+    } finally {
+      setIsGeolocating(false)
+    }
   }
 
   const isLoading = updateMutation.isPending
@@ -408,6 +440,68 @@ export function RestaurantInfoSettings({ restaurant, onUpdate, primaryColor = '#
               required
             />
           </div>
+        </div>
+
+        {/* GPS Coordinates */}
+        <div className="p-4 bg-gray-50 rounded-xl space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation size={16} style={{ color: primaryColor }} />
+              <span className="text-sm font-medium text-gray-900">Coordonnees GPS</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={geocodeAddress}
+              disabled={isGeolocating || !formData.address || !formData.city}
+              className="h-8 text-xs"
+            >
+              {isGeolocating ? (
+                <Loader2 size={12} className="mr-1 animate-spin" />
+              ) : (
+                <Search size={12} className="mr-1" />
+              )}
+              Rechercher depuis l'adresse
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Ces coordonnees sont utilisees pour centrer la carte des zones de livraison
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                type="number"
+                step="any"
+                value={formData.latitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, latitude: e.target.value ? parseFloat(e.target.value) : null })}
+                placeholder="48.8566"
+                className="h-11 rounded-xl focus:ring-2"
+                style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                type="number"
+                step="any"
+                value={formData.longitude ?? ''}
+                onChange={(e) => setFormData({ ...formData, longitude: e.target.value ? parseFloat(e.target.value) : null })}
+                placeholder="2.3522"
+                className="h-11 rounded-xl focus:ring-2"
+                style={{ '--tw-ring-color': `${primaryColor}80` } as React.CSSProperties}
+              />
+            </div>
+          </div>
+          {formData.latitude && formData.longitude && (
+            <p className="text-xs text-green-600 flex items-center gap-1">
+              <MapPin size={12} />
+              Position configuree: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+            </p>
+          )}
         </div>
       </div>
 

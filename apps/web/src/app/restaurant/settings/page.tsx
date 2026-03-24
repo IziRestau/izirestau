@@ -63,7 +63,7 @@ export default function RestaurantSettingsPage() {
   const { accessToken } = useAuthStore()
   const { organization, restaurants, currentRestaurantId, switchRestaurant } = useRestaurantStore()
   const navigation = useRestaurantNavigation()
-  const { isOwner, isOwnerOrManager, role } = useRestaurantPermissions()
+  const { isOwner, isOwnerOrManager, isDriver, role } = useRestaurantPermissions()
   
   const tabFromUrl = searchParams.get('tab') as SettingsTab | null
   const [activeTab, setActiveTab] = useState<SettingsTab>(tabFromUrl || 'profile')
@@ -110,11 +110,14 @@ export default function RestaurantSettingsPage() {
   const user = settings?.user
   const restaurant = settings?.restaurant
 
-  const isTabDisabled = (tab: typeof tabs[0]) => {
-    if (tab.requiresOwner && !isOwner) return true
-    if (tab.requiresOwnerOrManager && !isOwnerOrManager) return true
-    return false
+  const isTabVisible = (tab: typeof tabs[0]) => {
+    if (tab.requiresOwner && !isOwner) return false
+    if (tab.requiresOwnerOrManager && !isOwnerOrManager) return false
+    return true
   }
+
+  // Filtrer les onglets visibles
+  const visibleTabs = tabs.filter(isTabVisible)
 
   const renderTabContent = () => {
     if (!settings) return null
@@ -132,7 +135,7 @@ export default function RestaurantSettingsPage() {
       case 'payments':
         return <PaymentSettings settings={settings.settings} restaurantId={restaurantId} onUpdate={refetch} primaryColor={primaryColor} />
       case 'delivery':
-        return <DeliverySettings deliverySettings={settings.deliverySettings} restaurantId={restaurantId} onUpdate={refetch} primaryColor={primaryColor} />
+        return <DeliverySettings deliverySettings={settings.deliverySettings} restaurant={settings.restaurant} restaurantId={restaurantId} onUpdate={refetch} primaryColor={primaryColor} />
       case 'receipts':
         return <ReceiptSettings receiptSettings={settings.receiptSettings} receiptTemplates={settings.receiptTemplates || []} restaurantId={restaurantId} onUpdate={refetch} primaryColor={primaryColor} />
       case 'theme':
@@ -247,7 +250,7 @@ export default function RestaurantSettingsPage() {
               <button className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   {(() => {
-                    const currentTab = tabs.find(t => t.id === activeTab)
+                    const currentTab = visibleTabs.find(t => t.id === activeTab)
                     const Icon = currentTab?.icon || Settings
                     return (
                       <>
@@ -273,26 +276,18 @@ export default function RestaurantSettingsPage() {
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-1 overflow-y-auto flex-1 pb-safe scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
-                {tabs.map((tab) => {
+                {visibleTabs.map((tab) => {
                   const Icon = tab.icon
                   const isActive = activeTab === tab.id
-                  const isDisabled = isTabDisabled(tab)
 
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => {
-                        if (!isDisabled) {
-                          handleTabChange(tab.id)
-                        }
-                      }}
-                      disabled={isDisabled}
+                      onClick={() => handleTabChange(tab.id)}
                       className={cn(
                         "flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all w-full",
                         isActive
                           ? "text-white"
-                          : isDisabled
-                          ? "text-gray-300 cursor-not-allowed bg-gray-50"
                           : "text-gray-600 hover:bg-gray-50"
                       )}
                       style={isActive ? { backgroundColor: primaryColor } : undefined}
@@ -322,22 +317,18 @@ export default function RestaurantSettingsPage() {
         <div className="hidden lg:block lg:w-64 flex-shrink-0">
           <div className="bg-white rounded-2xl border border-gray-100 p-2 sticky top-24">
             <nav className="flex flex-col gap-1">
-              {tabs.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const Icon = tab.icon
                 const isActive = activeTab === tab.id
-                const isDisabled = isTabDisabled(tab)
 
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => !isDisabled && handleTabChange(tab.id)}
-                    disabled={isDisabled}
+                    onClick={() => handleTabChange(tab.id)}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all w-full",
                       isActive
                         ? "text-white"
-                        : isDisabled
-                        ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-600 hover:bg-gray-50"
                     )}
                     style={isActive ? { backgroundColor: primaryColor } : undefined}

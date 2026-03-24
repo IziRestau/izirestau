@@ -1,6 +1,6 @@
 import { useRestaurantStore } from '@/stores/restaurant.store'
 
-type RestaurantRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'CASHIER' | 'KITCHEN'
+type RestaurantRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'CASHIER' | 'KITCHEN' | 'DRIVER'
 
 interface RestaurantPermissions {
   role: RestaurantRole
@@ -13,6 +13,7 @@ interface RestaurantPermissions {
   isStaff: boolean
   isCashier: boolean
   isKitchen: boolean
+  isDriver: boolean
   
   // Permissions specifiques
   canViewRevenue: boolean
@@ -50,6 +51,7 @@ export function useRestaurantPermissions(): RestaurantPermissions {
   const isStaff = role === 'STAFF'
   const isCashier = role === 'CASHIER'
   const isKitchen = role === 'KITCHEN'
+  const isDriver = role === 'DRIVER'
   
   /**
    * Verifie si l'utilisateur peut effectuer une action
@@ -71,6 +73,7 @@ export function useRestaurantPermissions(): RestaurantPermissions {
     isStaff,
     isCashier,
     isKitchen,
+    isDriver,
     
     // Permissions specifiques basees sur les roles
     // Revenus: OWNER et MANAGER uniquement
@@ -126,6 +129,7 @@ export const roleLabels: Record<RestaurantRole, string> = {
   STAFF: 'Employe',
   CASHIER: 'Caissier',
   KITCHEN: 'Cuisine',
+  DRIVER: 'Livreur',
 }
 
 /**
@@ -137,4 +141,5 @@ export const roleColors: Record<RestaurantRole, string> = {
   STAFF: 'bg-gray-100 text-gray-700',
   CASHIER: 'bg-purple-100 text-purple-700',
   KITCHEN: 'bg-orange-100 text-orange-700',
+  DRIVER: 'bg-emerald-100 text-emerald-700',
 }

@@ -482,6 +482,30 @@ router.get('/orders/:orderId/track', async (req: Request, res: Response, next: N
             totalPrice: true,
           },
         },
+        delivery: {
+          select: {
+            id: true,
+            status: true,
+            estimatedTime: true,
+            assignedAt: true,
+            pickedUpAt: true,
+            deliveredAt: true,
+            driver: {
+              select: {
+                id: true,
+                vehicleType: true,
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    phone: true,
+                    avatar: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     })
 
@@ -498,6 +522,21 @@ router.get('/orders/:orderId/track', async (req: Request, res: Response, next: N
           ...item,
           totalPrice: Number(item.totalPrice),
         })),
+        delivery: order.delivery ? {
+          id: order.delivery.id,
+          status: order.delivery.status,
+          estimatedTime: order.delivery.estimatedTime,
+          assignedAt: order.delivery.assignedAt,
+          pickedUpAt: order.delivery.pickedUpAt,
+          deliveredAt: order.delivery.deliveredAt,
+          driver: order.delivery.driver ? {
+            firstName: order.delivery.driver.user.firstName,
+            lastName: order.delivery.driver.user.lastName,
+            phone: order.delivery.driver.user.phone,
+            avatar: order.delivery.driver.user.avatar,
+            vehicleType: order.delivery.driver.vehicleType,
+          } : null,
+        } : null,
       },
     })
   } catch (error) {

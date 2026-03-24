@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api, MediaItem } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth.store'
+import { useRestaurantPermissions } from '@/hooks/use-restaurant-permissions'
 import { toast } from 'sonner'
 import { User, Mail, Phone, Globe, Clock, Camera, Loader2, FolderOpen } from 'lucide-react'
 import { Label } from '@/components/ui/label'
@@ -62,6 +63,7 @@ export function ProfileSettings({ user, onUpdate, primaryColor = '#10b981', rest
   const [showMediaSelector, setShowMediaSelector] = useState(false)
 
   const { user: authUser, setUser } = useAuthStore()
+  const { isDriver } = useRestaurantPermissions()
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -87,6 +89,10 @@ export function ProfileSettings({ user, onUpdate, primaryColor = '#10b981', rest
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      // Les livreurs n'ont pas accès à la médiathèque, utiliser l'upload générique
+      if (isDriver) {
+        return api.upload.uploadImage(file, 'avatars')
+      }
       if (restaurantId) {
         return api.media.upload(file, 'avatars', restaurantId)
       }
@@ -168,13 +174,15 @@ export function ProfileSettings({ user, onUpdate, primaryColor = '#10b981', rest
                 disabled={uploadMutation.isPending}
               />
             </label>
-            <button
-              type="button"
-              onClick={() => setShowMediaSelector(true)}
-              className="w-7 h-7 bg-white rounded-full border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
-            >
-              <FolderOpen size={12} className="text-gray-500" />
-            </button>
+            {!isDriver && (
+              <button
+                type="button"
+                onClick={() => setShowMediaSelector(true)}
+                className="w-7 h-7 bg-white rounded-full border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+              >
+                <FolderOpen size={12} className="text-gray-500" />
+              </button>
+            )}
           </div>
         </div>
         <div>
@@ -183,16 +191,18 @@ export function ProfileSettings({ user, onUpdate, primaryColor = '#10b981', rest
         </div>
       </div>
 
-      <MediaSelectorModal
-        isOpen={showMediaSelector}
-        onClose={() => setShowMediaSelector(false)}
-        onSelect={handleMediaSelect}
-        multiple={false}
-        folder="avatars"
-        primaryColor={primaryColor}
-        title="Sélectionner une photo"
-        restaurantId={restaurantId}
-      />
+      {!isDriver && (
+        <MediaSelectorModal
+          isOpen={showMediaSelector}
+          onClose={() => setShowMediaSelector(false)}
+          onSelect={handleMediaSelect}
+          multiple={false}
+          folder="avatars"
+          primaryColor={primaryColor}
+          title="Sélectionner une photo"
+          restaurantId={restaurantId}
+        />
+      )}
 
       {/* Name Fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

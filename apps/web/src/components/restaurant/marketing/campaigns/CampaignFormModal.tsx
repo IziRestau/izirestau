@@ -289,7 +289,7 @@ export function CampaignFormModal({ open, onClose, campaign, primaryColor }: Cam
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
             <Button type="submit" disabled={isLoading} style={{ backgroundColor: primaryColor }}>

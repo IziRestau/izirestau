@@ -505,6 +505,24 @@ export interface ThanksOrderData {
   items: { productName: string; quantity: number; totalPrice: number }[]
 }
 
+export interface TrackOrderDeliveryDriver {
+  firstName: string
+  lastName: string
+  phone: string | null
+  avatar: string | null
+  vehicleType: string | null
+}
+
+export interface TrackOrderDelivery {
+  id: string
+  status: string
+  estimatedTime: number | null
+  assignedAt: string | null
+  pickedUpAt: string | null
+  deliveredAt: string | null
+  driver: TrackOrderDeliveryDriver | null
+}
+
 export interface TrackOrderData {
   id: string
   orderNumber: string
@@ -528,6 +546,7 @@ export interface TrackOrderData {
     unitPrice: number
     totalPrice: number
   }[]
+  delivery?: TrackOrderDelivery | null
 }
 
 export interface TrackPageProps {

@@ -1554,6 +1554,7 @@ model DeliveryZone {
   
   name                String
   polygon             Json
+  addresses           Json?
   
   deliveryFee         Decimal   @db.Decimal(10, 2)
   minOrderAmount      Decimal?  @db.Decimal(10, 2)

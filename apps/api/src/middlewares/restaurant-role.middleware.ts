@@ -3,7 +3,7 @@ import { prisma } from '@iziresto/database'
 import { AppError } from './error.middleware'
 
 // Types pour les roles restaurant
-type RestaurantRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'CASHIER' | 'KITCHEN'
+type RestaurantRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'CASHIER' | 'KITCHEN' | 'DRIVER'
 
 interface RestaurantStaffData {
   id: string
@@ -26,6 +26,7 @@ declare global {
 /**
  * Récupère les données du staff restaurant pour l'utilisateur connecté
  * Supporte le multi-restaurant via query param ou body
+ * Supporte aussi les livreurs (Driver)
  */
 async function getStaffFromRequest(req: Request): Promise<RestaurantStaffData | null> {
   const userId = req.user?.userId
@@ -34,6 +35,7 @@ async function getStaffFromRequest(req: Request): Promise<RestaurantStaffData | 
   // Récupérer le restaurantId depuis query ou body
   const restaurantId = (req.query.restaurantId || req.body?.restaurantId) as string | undefined
 
+  // D'abord chercher dans RestaurantStaff
   const staff = await prisma.restaurantStaff.findFirst({
     where: restaurantId 
       ? { userId, restaurantId, isActive: true }
@@ -48,9 +50,35 @@ async function getStaffFromRequest(req: Request): Promise<RestaurantStaffData | 
     },
   })
 
-  if (!staff) return null
+  if (staff) {
+    return staff as RestaurantStaffData
+  }
 
-  return staff as RestaurantStaffData
+  // Si pas de staff, chercher dans Driver
+  const driver = await prisma.driver.findFirst({
+    where: restaurantId
+      ? { userId, restaurantId, isActive: true }
+      : { userId, isActive: true },
+    select: {
+      id: true,
+      restaurantId: true,
+      userId: true,
+      isActive: true,
+    },
+  })
+
+  if (driver) {
+    return {
+      id: driver.id,
+      restaurantId: driver.restaurantId,
+      userId: driver.userId,
+      role: 'DRIVER' as RestaurantRole,
+      permissions: ['view_deliveries', 'update_delivery_status'],
+      isActive: driver.isActive,
+    }
+  }
+
+  return null
 }
 
 /**
@@ -165,6 +193,10 @@ export function canRolePerform(role: RestaurantRole, action: string): boolean {
       'view_orders',
       'update_order_status',
       'view_products',
+    ],
+    DRIVER: [
+      'view_deliveries',
+      'update_delivery_status',
     ],
   }
 

@@ -185,12 +185,14 @@ export async function sendInvitationEmail(
   to: string,
   firstName: string,
   resellerName: string,
-  inviteLink: string
+  inviteLink: string,
+  organizationName?: string
 ) {
+  const orgName = organizationName || resellerName
   return sendEmail({
     to,
-    subject: `${resellerName} vous invite a rejoindre IziResto`,
-    react: InvitationEmail({ firstName, resellerName, inviteLink }),
+    subject: `${resellerName} vous invite a rejoindre ${orgName}`,
+    react: InvitationEmail({ firstName, resellerName, organizationName: orgName, inviteLink }),
   })
 }
 
