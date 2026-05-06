@@ -1,30 +1,33 @@
-import Link from 'next/link'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth.store'
 
 export default function HomePage() {
+  const router = useRouter()
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore()
+
+  useEffect(() => {
+    if (!_hasHydrated) return
+
+    if (isAuthenticated && user) {
+      if (user.isSuperAdmin || user.userType === 'SUPER_ADMIN') {
+        router.replace('/platform')
+      } else if (user.userType === 'RESTAURANT' || user.userType === 'DRIVER') {
+        router.replace('/restaurant')
+      } else {
+        router.replace('/reseller')
+      }
+    } else {
+      router.replace('/login')
+    }
+  }, [_hasHydrated, isAuthenticated, user, router])
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-orange-50 to-white">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-gray-900">
-          Izi<span className="text-primary">Resto</span>
-        </h1>
-        <p className="mt-4 text-xl text-gray-600">
-          Plateforme SaaS pour revendeurs de solutions restaurant
-        </p>
-        <div className="mt-8 flex gap-4 justify-center">
-          <Link
-            href="/login"
-            className="rounded-lg bg-primary px-6 py-3 text-white font-medium hover:bg-primary/90 transition"
-          >
-            Connexion
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-lg border border-gray-300 px-6 py-3 font-medium hover:bg-gray-50 transition"
-          >
-            Inscription
-          </Link>
-        </div>
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
     </div>
   )
 }
