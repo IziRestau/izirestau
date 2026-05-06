@@ -393,7 +393,7 @@ export default function DeliveriesPage() {
               </div>
 
               {/* Adresse de livraison */}
-              {currentDelivery.address && (
+              {Boolean(currentDelivery.address) && (
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">Adresse de livraison</p>
                   <p className="font-medium text-gray-900">
