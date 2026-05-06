@@ -22,10 +22,10 @@ interface Plan {
   name: string
   slug: string
   description: string | null
-  price: number
+  priceMonthly: number
+  priceYearly: number | null
   currency: string
-  billingCycle: number
-  billingCycleLabel: string | null
+  features: string[]
   isCustom: boolean
   isActive: boolean
   isArchived: boolean
@@ -82,14 +82,13 @@ export function PlanFormModal({ isOpen, onClose, plan }: PlanFormModalProps) {
 
   useEffect(() => {
     if (plan) {
-      console.log('Plan loaded:', plan, 'billingCycle:', plan.billingCycle)
       setFormData({
         name: plan.name,
         description: plan.description || '',
-        price: Number(plan.price),
+        price: Number(plan.priceMonthly),
         currency: plan.currency || 'XOF',
-        billingCycle: typeof plan.billingCycle === 'number' && plan.billingCycle > 0 ? plan.billingCycle : 1,
-        billingCycleLabel: plan.billingCycleLabel || '',
+        billingCycle: 1,
+        billingCycleLabel: '',
         isCustom: plan.isCustom,
         isPopular: plan.isPopular,
         isPublic: plan.isPublic,

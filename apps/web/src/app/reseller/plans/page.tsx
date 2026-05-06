@@ -39,10 +39,10 @@ interface Plan {
   name: string
   slug: string
   description: string | null
-  price: number
+  priceMonthly: number
+  priceYearly: number | null
   currency: string
-  billingCycle: number
-  billingCycleLabel: string | null
+  features: string[]
   isCustom: boolean
   isActive: boolean
   isArchived: boolean
@@ -51,15 +51,6 @@ interface Plan {
   sortOrder: number
   subscribersCount: number
   createdAt: string
-}
-
-const BILLING_CYCLES: Record<number, string> = {
-  1: 'mois',
-  3: 'trimestre',
-  6: 'semestre',
-  12: 'an',
-  24: '2 ans',
-  36: '3 ans',
 }
 
 export default function PlansPage() {
@@ -324,11 +315,9 @@ export default function PlansPage() {
                 ) : (
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-bold text-gray-900">
-                      {formatPrice(plan.price, plan.currency)}
+                      {formatPrice(plan.priceMonthly, plan.currency)}
                     </span>
-                    <span className="text-sm text-gray-500">
-                      /{plan.billingCycleLabel || BILLING_CYCLES[plan.billingCycle] || `${plan.billingCycle} mois`}
-                    </span>
+                    <span className="text-sm text-gray-500">/mois</span>
                   </div>
                 )}
               </div>
