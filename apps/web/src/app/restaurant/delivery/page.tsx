@@ -330,7 +330,7 @@ export default function DeliveriesPage() {
               </div>
 
               {/* Restaurant */}
-              {'restaurant' in currentDelivery.order && currentDelivery.order.restaurant && (
+              {'restaurant' in currentDelivery.order && Boolean(currentDelivery.order.restaurant) && (
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">Restaurant</p>
                   <p className="font-medium text-gray-900">{(currentDelivery.order.restaurant as { name: string }).name}</p>
