@@ -346,21 +346,21 @@ export default function DeliveriesPage() {
               </div>
 
               {/* Restaurant */}
-              {currentDelivery.order.restaurant && (
+              {currentDelivery.order.restaurant ? (
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-500 mb-1">Restaurant</p>
                   <p className="font-medium text-gray-900">{currentDelivery.order.restaurant.name}</p>
-                  {currentDelivery.order.restaurant.address && (
+                  {currentDelivery.order.restaurant.address ? (
                     <p className="text-sm text-gray-600">{currentDelivery.order.restaurant.address}</p>
-                  )}
-                  {currentDelivery.order.restaurant.phone && (
+                  ) : null}
+                  {currentDelivery.order.restaurant.phone ? (
                     <a href={`tel:${currentDelivery.order.restaurant.phone}`} className="flex items-center gap-1 text-sm mt-1" style={{ color: primaryColor }}>
                       <Phone size={14} />
                       {currentDelivery.order.restaurant.phone}
                     </a>
-                  )}
+                  ) : null}
                 </div>
-              )}
+              ) : null}
 
               {/* Client */}
               <div className="bg-gray-50 rounded-lg p-3">
