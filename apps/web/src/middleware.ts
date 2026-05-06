@@ -11,6 +11,21 @@ const SUBDOMAIN_APP_MAP: Record<string, string> = {
 
 const RESERVED_SUBDOMAINS = new Set(['app', 'reseller', 'admin', 'www', 'api', 'cdn'])
 
+// Paths globaux (login, inscription, etc.) - servis tels quels sur tous les sous-domaines
+// (pas de rewrite vers /restaurant/login, /reseller/login, etc.)
+const SHARED_GLOBAL_PATHS = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/setup-password',
+  '/onboarding',
+]
+
+function isSharedGlobalPath(pathname: string): boolean {
+  return SHARED_GLOBAL_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
+}
+
 export function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host') || ''
@@ -30,6 +45,11 @@ export function middleware(request: NextRequest) {
   // 1) Sous-domaine réservé (app / reseller / admin) -> rewrite vers son path
   if (isOurDomain && SUBDOMAIN_APP_MAP[subdomain]) {
     const prefix = SUBDOMAIN_APP_MAP[subdomain]
+
+    // Paths globaux partagés (auth, onboarding) : pas de rewrite, servis depuis la racine
+    if (isSharedGlobalPath(url.pathname)) {
+      return NextResponse.next()
+    }
 
     // Si l'URL contient le préfixe explicite (ex: app.*/restaurant/orders),
     // rediriger vers la version propre sans préfixe (ex: app.*/orders)
