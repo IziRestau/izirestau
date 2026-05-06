@@ -1,8 +1,6 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/stores/auth.store'
@@ -25,7 +23,7 @@ interface BrandingData {
   } | null
 }
 
-export default function RestaurantLoginPage() {
+function RestaurantLoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const subdomain = searchParams.get('subdomain') || ''
@@ -239,5 +237,13 @@ export default function RestaurantLoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RestaurantLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <RestaurantLoginPageContent />
+    </Suspense>
   )
 }

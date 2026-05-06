@@ -1,8 +1,6 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Store, User, Lock, Mail, Phone, Building2, Loader2, CheckCircle, ArrowRight, UtensilsCrossed, Shield, Zap, HeartHandshake, Eye, EyeOff } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
@@ -22,7 +20,7 @@ interface OnboardingFormData {
   acceptTerms: boolean
 }
 
-export default function OnboardingPage() {
+function OnboardingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -483,5 +481,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <OnboardingPageContent />
+    </Suspense>
   )
 }

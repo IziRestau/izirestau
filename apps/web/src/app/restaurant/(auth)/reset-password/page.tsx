@@ -1,15 +1,13 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { UtensilsCrossed, ArrowLeft, Eye, EyeOff, Check, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api-client'
 
-export default function RestaurantResetPasswordPage() {
+function RestaurantResetPasswordPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -175,5 +173,13 @@ export default function RestaurantResetPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RestaurantResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <RestaurantResetPasswordPageContent />
+    </Suspense>
   )
 }

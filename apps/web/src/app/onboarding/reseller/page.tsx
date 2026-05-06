@@ -1,8 +1,6 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
@@ -27,7 +25,7 @@ interface TokenValidation {
   organizationName: string
 }
 
-export default function ResellerOnboardingPage() {
+function ResellerOnboardingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -407,5 +405,13 @@ export default function ResellerOnboardingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResellerOnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResellerOnboardingPageContent />
+    </Suspense>
   )
 }

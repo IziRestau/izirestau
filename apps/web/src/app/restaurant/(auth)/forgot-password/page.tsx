@@ -1,15 +1,13 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { UtensilsCrossed, ArrowLeft, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/api-client'
 
-export default function RestaurantForgotPasswordPage() {
+function RestaurantForgotPasswordPageContent() {
   const searchParams = useSearchParams()
   const subdomain = searchParams.get('subdomain') || ''
   
@@ -111,5 +109,13 @@ export default function RestaurantForgotPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RestaurantForgotPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <RestaurantForgotPasswordPageContent />
+    </Suspense>
   )
 }

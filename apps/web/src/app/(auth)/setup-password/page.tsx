@@ -1,8 +1,6 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, CheckCircle, Lock, Users } from 'lucide-react'
@@ -10,7 +8,7 @@ import { Logo } from '@/components/ui/logo'
 import { toast } from 'sonner'
 import { api } from '@/lib/api-client'
 
-export default function SetupPasswordPage() {
+function SetupPasswordPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
@@ -212,5 +210,13 @@ export default function SetupPasswordPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SetupPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <SetupPasswordPageContent />
+    </Suspense>
   )
 }
