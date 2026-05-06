@@ -19,8 +19,8 @@ interface OrderSettingsProps {
     orderNotificationSms: boolean
     avgPrepTime: number
     maxOrdersPerSlot: number | null
-    pickupEnabled: boolean
-    dineInEnabled: boolean
+    pickupEnabled?: boolean
+    dineInEnabled?: boolean
   } | null
   restaurantId: string
   onUpdate: () => void
