@@ -4651,11 +4651,11 @@ export const api = {
             quantity: number
             product: { name: string }
           }>
-          restaurant: {
+          restaurant?: {
             name: string
             address: string | null
             phone: string | null
-          }
+          } | null
         }
         address: unknown
         latitude: number | null
