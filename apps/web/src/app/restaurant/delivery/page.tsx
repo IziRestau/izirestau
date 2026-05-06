@@ -254,7 +254,22 @@ export default function DeliveriesPage() {
     'CANCELLED': { label: 'Annulee', color: 'bg-gray-100 text-gray-600' },
   }
 
-  const currentDelivery = currentDeliveryData?.data
+  const currentDelivery = currentDeliveryData?.data as {
+    id: string
+    status: DeliveryStatus
+    order: {
+      id: string
+      orderNumber: string
+      subtotal: number
+      customer: { firstName: string; lastName: string; phone: string | null }
+      items: Array<{ id: string; quantity: number; product: { name: string } }>
+      restaurant?: { name: string; address: string | null; phone: string | null } | null
+    }
+    address: unknown
+    latitude: number | null
+    longitude: number | null
+    estimatedTime: number | null
+  } | null | undefined
   const driverDeliveries = driverDeliveriesData?.data || []
   const driverStats = driverStatsData?.data
 
