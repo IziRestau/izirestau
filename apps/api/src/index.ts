@@ -26,9 +26,34 @@ import { authenticate } from './middlewares/auth.middleware'
 const app: Express = express()
 const httpServer = createServer(app)
 
+const explicitOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+
+const originPatterns: RegExp[] = (process.env.CORS_ORIGIN_PATTERNS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean)
+  .map(p => new RegExp(p))
+
+const isOriginAllowed = (origin: string | undefined): boolean => {
+  if (!origin) return true
+  if (explicitOrigins.includes(origin)) return true
+  return originPatterns.some(rx => rx.test(origin))
+}
+
+const corsOriginCheck = (
+  origin: string | undefined,
+  callback: (err: Error | null, allow?: boolean) => void
+) => {
+  if (isOriginAllowed(origin)) callback(null, true)
+  else callback(new Error(`CORS: origin ${origin} not allowed`))
+}
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: corsOriginCheck,
     credentials: true,
   },
 })
@@ -42,13 +67,13 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       fontSrc: ["'self'", "https:", "data:"],
       frameSrc: ["'self'"],
-      frameAncestors: ["'self'", "http://localhost:3000", "http://localhost:4000"],
+      frameAncestors: ["'self'", ...explicitOrigins],
     },
   },
   crossOriginEmbedderPolicy: false,
 }))
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: corsOriginCheck,
   credentials: true,
 }))
 app.use(compression())
@@ -78,15 +103,15 @@ app.use('/api/driver', authenticate, driverRoutes)
 
 app.use(errorHandler)
 
-const PORT = process.env.PORT || 4000
+const PORT = Number(process.env.PORT) || 4000
 
 async function startServer() {
   await redis.connect()
-  
+
   // Démarrer les jobs cron internes
   startCronJobs()
-  
-  httpServer.listen(PORT, () => {
+
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`)
   })
 }
