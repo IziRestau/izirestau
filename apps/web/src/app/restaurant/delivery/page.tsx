@@ -254,7 +254,7 @@ export default function DeliveriesPage() {
     'CANCELLED': { label: 'Annulee', color: 'bg-gray-100 text-gray-600' },
   }
 
-  const currentDelivery = currentDeliveryData?.data as {
+  type CurrentDelivery = {
     id: string
     status: DeliveryStatus
     order: {
@@ -269,7 +269,8 @@ export default function DeliveriesPage() {
     latitude: number | null
     longitude: number | null
     estimatedTime: number | null
-  } | null | undefined
+  }
+  const currentDelivery = (currentDeliveryData?.data ?? null) as unknown as CurrentDelivery | null
   const driverDeliveries = driverDeliveriesData?.data || []
   const driverStats = driverStatsData?.data
 
