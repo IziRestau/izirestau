@@ -37,7 +37,7 @@ COPY packages/ui/package.json packages/ui/
 COPY apps/web/package.json apps/web/
 
 # 2. Install all workspace deps (including dev — tsx/prisma needed at runtime + build)
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # 3. Copy source for the workspaces required by the API
 COPY packages/database packages/database
