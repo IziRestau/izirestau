@@ -31,11 +31,15 @@ export function middleware(request: NextRequest) {
   if (isOurDomain && SUBDOMAIN_APP_MAP[subdomain]) {
     const prefix = SUBDOMAIN_APP_MAP[subdomain]
 
-    // Évite la double-application du préfixe (ex: /restaurant/orders sur app.* deviendrait /restaurant/restaurant/orders)
-    if (url.pathname.startsWith(prefix + '/') || url.pathname === prefix) {
-      return NextResponse.next()
+    // Si l'URL contient le préfixe explicite (ex: app.*/restaurant/orders),
+    // rediriger vers la version propre sans préfixe (ex: app.*/orders)
+    if (url.pathname === prefix || url.pathname.startsWith(prefix + '/')) {
+      const cleanPath = url.pathname.slice(prefix.length) || '/'
+      return NextResponse.redirect(new URL(`${cleanPath}${url.search}`, request.url), 308)
     }
 
+    // Sinon, rewrite transparent : URL propre dans le navigateur,
+    // contenu de /restaurant/... (ou /reseller/..., /platform/...) servi
     const newPath = `${prefix}${url.pathname === '/' ? '' : url.pathname}`
     return NextResponse.rewrite(new URL(`${newPath}${url.search}`, request.url))
   }
