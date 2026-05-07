@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/stores/auth.store'
-import { Eye, EyeOff, Shield, Lock, Activity } from 'lucide-react'
+import { Eye, EyeOff, Shield, Lock, Activity, Users } from 'lucide-react'
+import { Logo } from '@/components/ui/logo'
 import { toast } from 'sonner'
 import { TwoFactorLoginModal } from '@/components/shared/TwoFactorLoginModal'
 
@@ -64,68 +65,78 @@ export default function PlatformLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#0b0d12]">
-      <div className="hidden lg:flex lg:w-[480px] bg-[#11141b] flex-col p-10 border-r border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
-            <Shield className="w-5 h-5 text-amber-400" />
-          </div>
-          <span className="text-xl font-bold text-white">IziResto Admin</span>
-        </div>
+    <div className="min-h-screen flex">
+      <div className="hidden lg:flex lg:w-[480px] bg-gradient-to-br from-indigo-600 to-indigo-700 flex-col p-10">
+        <Logo size="md" theme="dark" />
 
         <div className="flex-1 flex flex-col justify-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-medium text-white mb-6 w-fit">
+            <Shield className="w-3.5 h-3.5" />
+            Acces administrateur
+          </div>
+
           <h2 className="text-3xl font-bold text-white mb-4">
-            Console d&apos;administration
+            Console d&apos;administration IziResto
           </h2>
-          <p className="text-gray-400 mb-10">
-            Acces reserve aux super administrateurs de la plateforme.
-            Toute connexion est tracee et auditee.
+          <p className="text-indigo-50 mb-10">
+            Pilotez l&apos;ensemble de la plateforme : revendeurs, restaurants, licences, support.
+            Toutes les actions sont auditees.
           </p>
 
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center">
-                <Lock className="w-6 h-6 text-amber-400" />
+              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-white" />
               </div>
               <div>
-                <div className="text-white font-medium">Acces protege</div>
-                <div className="text-sm text-gray-500">Authentification 2FA recommandee</div>
+                <div className="text-white font-medium">Gestion globale</div>
+                <div className="text-sm text-indigo-50/80">Revendeurs, restaurants et utilisateurs</div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-amber-400" />
+              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
+                <Lock className="w-6 h-6 text-white" />
               </div>
               <div>
-                <div className="text-white font-medium">Audit trail</div>
-                <div className="text-sm text-gray-500">Toutes les actions sont enregistrees</div>
+                <div className="text-white font-medium">Licences & plans</div>
+                <div className="text-sm text-indigo-50/80">Configuration des offres commerciales</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
+                <Activity className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="text-white font-medium">Audit & supervision</div>
+                <div className="text-sm text-indigo-50/80">Suivi en temps reel de la plateforme</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="text-gray-600 text-xs">
-          IziResto Platform &middot; Acces restreint
+        <div className="text-indigo-100/70 text-sm">
+          2024 IziResto. Tous droits reserves.
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-8 bg-[#f8f9fb]">
         <div className="w-full max-w-[420px]">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
-              <Shield className="w-5 h-5 text-amber-400" />
-            </div>
-            <span className="text-xl font-bold text-white">IziResto Admin</span>
+          <div className="text-center mb-8 lg:hidden">
+            <Logo size="md" theme="light" className="justify-center mb-6" />
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white">Administration</h1>
-            <p className="mt-2 text-gray-500">Connectez-vous a la console d&apos;administration</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-xs font-medium text-indigo-700 mb-4">
+              <Shield className="w-3.5 h-3.5" />
+              Administration
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Console d&apos;administration</h1>
+            <p className="mt-2 text-gray-500">Connectez-vous a votre espace super administrateur</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email administrateur
               </label>
               <input
@@ -135,16 +146,16 @@ export default function PlatformLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="admin@iziresto.com"
-                className="w-full h-12 px-4 bg-[#161a23] border border-white/5 rounded-xl text-sm text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-transparent transition-all"
+                className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Mot de passe
                 </label>
-                <Link href="/forgot-password" className="text-sm text-amber-400 hover:text-amber-300 font-medium">
+                <Link href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
                   Oublie ?
                 </Link>
               </div>
@@ -156,12 +167,12 @@ export default function PlatformLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Mot de passe administrateur"
-                  className="w-full h-12 px-4 bg-[#161a23] border border-white/5 rounded-xl text-sm text-white placeholder:text-gray-600 pr-12 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-transparent transition-all"
+                  className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-sm pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -171,14 +182,14 @@ export default function PlatformLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-amber-500 hover:bg-amber-400 text-[#0b0d12] rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Connexion en cours...' : 'Acceder a la console'}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-gray-600 text-xs">
-            Acces reserve. Tentatives de connexion auditees.
+          <p className="mt-8 text-center text-gray-400 text-xs">
+            Acces reserve. Toutes les tentatives de connexion sont auditees.
           </p>
         </div>
       </div>

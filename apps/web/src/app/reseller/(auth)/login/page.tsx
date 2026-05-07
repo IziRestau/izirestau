@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/stores/auth.store'
-import { Eye, EyeOff, Briefcase, TrendingUp, Users, Wallet, Check } from 'lucide-react'
+import { Eye, EyeOff, UtensilsCrossed, Check } from 'lucide-react'
 import { Logo } from '@/components/ui/logo'
 import { toast } from 'sonner'
 import { TwoFactorLoginModal } from '@/components/shared/TwoFactorLoginModal'
@@ -67,59 +67,49 @@ export default function ResellerLoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[480px] bg-gradient-to-br from-emerald-600 to-emerald-700 flex-col p-10">
+      <div className="hidden lg:flex lg:w-[480px] bg-[#1e2128] flex-col p-10">
         <Logo size="md" theme="dark" />
 
         <div className="flex-1 flex flex-col justify-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Developpez votre activite de revendeur
+            La plateforme complete pour gerer vos restaurants
           </h2>
-          <p className="text-emerald-50 mb-10">
-            Gerez vos restaurants clients, suivez vos commissions
-            et boostez vos revenus depuis un seul espace.
+          <p className="text-gray-400 mb-10">
+            Rejoignez plus de 500 revendeurs qui font confiance a IziResto pour developper leur activite.
           </p>
 
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                <UtensilsCrossed className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
-                <div className="text-white font-medium">Gestion centralisee</div>
-                <div className="text-sm text-emerald-50/80">Tous vos clients restaurants en un coup d&apos;oeil</div>
+                <div className="text-white font-medium">500+ Restaurants</div>
+                <div className="text-sm text-gray-400">Actifs sur la plateforme</div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <Wallet className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                <span className="text-blue-400 text-xl font-bold">K</span>
               </div>
               <div>
-                <div className="text-white font-medium">Commissions automatiques</div>
-                <div className="text-sm text-emerald-50/80">Paiements et facturation simplifies</div>
+                <div className="text-white font-medium">Commandes mensuelles</div>
+                <div className="text-sm text-gray-400">Traitees chaque mois</div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                <span className="text-purple-400 text-xl font-bold">%</span>
               </div>
               <div>
-                <div className="text-white font-medium">Statistiques de croissance</div>
-                <div className="text-sm text-emerald-50/80">Suivez vos performances en temps reel</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <div className="text-white font-medium">Equipe & support</div>
-                <div className="text-sm text-emerald-50/80">Invitez vos collaborateurs et ouvrez des tickets</div>
+                <div className="text-white font-medium">Satisfaction client</div>
+                <div className="text-sm text-gray-400">Note moyenne de nos utilisateurs</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="text-emerald-100/70 text-sm">
+        <div className="text-gray-500 text-sm">
           2024 IziResto. Tous droits reserves.
         </div>
       </div>
@@ -131,7 +121,7 @@ export default function ResellerLoginPage() {
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Espace Revendeur</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Bon retour parmi nous</h1>
             <p className="mt-2 text-gray-500">Connectez-vous a votre espace revendeur</p>
           </div>
 
@@ -206,7 +196,7 @@ export default function ResellerLoginPage() {
           <p className="mt-8 text-center text-gray-500 text-sm">
             Vous n&apos;avez pas de compte ?{' '}
             <Link href="/register" className="text-emerald-500 font-semibold hover:text-emerald-600">
-              Devenir revendeur
+              Creer un compte
             </Link>
           </p>
         </div>
