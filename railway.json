@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c \"pnpm --filter @iziresto/database exec prisma migrate deploy && pnpm --filter @iziresto/api start\"",
+    "startCommand": "sh -c \"pnpm --filter @iziresto/database exec prisma migrate deploy && (test -f packages/database/prisma/seed-super-admin.ts && pnpm --filter @iziresto/database exec tsx prisma/seed-super-admin.ts || true) && pnpm --filter @iziresto/api start\"",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",
