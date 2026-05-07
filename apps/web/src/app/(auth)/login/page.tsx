@@ -8,29 +8,58 @@ import { Eye, EyeOff, UtensilsCrossed, Check } from 'lucide-react'
 import { Logo } from '@/components/ui/logo'
 import { toast } from 'sonner'
 import { TwoFactorLoginModal } from '@/components/shared/TwoFactorLoginModal'
+import { useSubdomainContext, getContextConfig } from '@/lib/subdomain'
+
+type UserRole = 'admin' | 'restaurant' | 'reseller'
+
+function detectRole(user: { isSuperAdmin?: boolean; userType?: string } | null): UserRole | null {
+  if (!user) return null
+  if (user.isSuperAdmin || user.userType === 'SUPER_ADMIN') return 'admin'
+  if (user.userType === 'RESTAURANT' || user.userType === 'DRIVER') return 'restaurant'
+  if (user.userType === 'RESELLER') return 'reseller'
+  return null
+}
+
+const ROLE_TO_SUBDOMAIN: Record<UserRole, 'admin' | 'app' | 'reseller'> = {
+  admin: 'admin',
+  restaurant: 'app',
+  reseller: 'reseller',
+}
 
 export default function LoginPage() {
   const router = useRouter()
+  const subdomain = useSubdomainContext()
+  const cfg = getContextConfig(subdomain)
   const { login, login2FA } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const [show2FAModal, setShow2FAModal] = useState(false)
   const [tempToken, setTempToken] = useState('')
   const [is2FALoading, setIs2FALoading] = useState(false)
 
   const redirectAfterLogin = () => {
     const { user } = useAuthStore.getState()
-    if (user?.isSuperAdmin || user?.userType === 'SUPER_ADMIN') {
-      router.push('/platform')
-    } else if (user?.userType === 'RESTAURANT') {
-      router.push('/restaurant')
-    } else {
-      router.push('/reseller')
+    const role = detectRole(user)
+    if (!role) {
+      router.push('/')
+      return
     }
+
+    const targetSub = ROLE_TO_SUBDOMAIN[role]
+
+    if (!subdomain || subdomain === targetSub) {
+      router.push('/')
+      return
+    }
+
+    const host = window.location.hostname
+    const parts = host.split('.')
+    const rootDomain = parts.length >= 2 ? parts.slice(-2).join('.') : host
+    window.location.href = `${window.location.protocol}//${targetSub}.${rootDomain}/`
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,8 +157,8 @@ export default function LoginPage() {
           </div>
           
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Bon retour parmi nous</h1>
-            <p className="mt-2 text-gray-500">Connectez-vous a votre espace revendeur</p>
+            <h1 className="text-2xl font-bold text-gray-900">{cfg.title}</h1>
+            <p className="mt-2 text-gray-500">{cfg.subtitle}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -203,12 +232,14 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-gray-500 text-sm">
-            Vous n&apos;avez pas de compte ?{' '}
-            <Link href="/register" className="text-emerald-500 font-semibold hover:text-emerald-600">
-              Creer un compte
-            </Link>
-          </p>
+          {cfg.registerEnabled && (
+            <p className="mt-8 text-center text-gray-500 text-sm">
+              Vous n&apos;avez pas de compte ?{' '}
+              <Link href="/register" className="text-emerald-500 font-semibold hover:text-emerald-600">
+                Creer un compte
+              </Link>
+            </p>
+          )}
         </div>
       </div>
 

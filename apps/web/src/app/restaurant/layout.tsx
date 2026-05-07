@@ -37,9 +37,9 @@ export default function RestaurantLayout({
   useEffect(() => {
     if (_hasHydrated && !isAuthRoute) {
       if (!isAuthenticated) {
-        router.replace('/restaurant/login')
+        router.replace('/login')
       } else if (user?.userType !== 'RESTAURANT' && user?.userType !== 'DRIVER') {
-        router.replace('/restaurant/login')
+        router.replace('/login')
       } else {
         setIsReady(true)
       }
@@ -81,7 +81,7 @@ export default function RestaurantLayout({
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
           <button
-            onClick={() => router.replace('/restaurant/login')}
+            onClick={() => router.replace('/login')}
             className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
           >
             Retour a la connexion
