@@ -6,7 +6,14 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useRestaurantStore } from '@/stores/restaurant.store'
 import { Loader2 } from 'lucide-react'
 
-const AUTH_ROUTES = ['/restaurant/login', '/restaurant/forgot-password', '/restaurant/reset-password']
+const AUTH_ROUTES = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/restaurant/login',
+  '/restaurant/forgot-password',
+  '/restaurant/reset-password',
+]
 
 export default function RestaurantLayout({
   children,

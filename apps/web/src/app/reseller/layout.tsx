@@ -1,11 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
 import { api, apiClient } from '@/lib/api-client'
 import { Loader2 } from 'lucide-react'
+
+const AUTH_ROUTES = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/reseller/login',
+  '/reseller/forgot-password',
+  '/reseller/reset-password',
+]
 
 export default function ResellerLayout({
   children,
@@ -13,8 +22,11 @@ export default function ResellerLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { isAuthenticated, _hasHydrated, checkAuth, user, accessToken, setUser } = useAuthStore()
   const [isReady, setIsReady] = useState(false)
+
+  const isAuthRoute = AUTH_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))
 
   useEffect(() => {
     if (_hasHydrated) {
@@ -23,7 +35,7 @@ export default function ResellerLayout({
   }, [_hasHydrated, checkAuth])
 
   useEffect(() => {
-    if (_hasHydrated) {
+    if (_hasHydrated && !isAuthRoute) {
       if (!isAuthenticated) {
         router.replace('/login')
       } else if (user?.userType !== 'RESELLER') {
@@ -32,7 +44,7 @@ export default function ResellerLayout({
         setIsReady(true)
       }
     }
-  }, [_hasHydrated, isAuthenticated, user, router])
+  }, [_hasHydrated, isAuthenticated, user, router, isAuthRoute])
 
   const { data: settingsData } = useQuery({
     queryKey: ['reseller-settings'],
@@ -107,6 +119,10 @@ export default function ResellerLayout({
     enabled: isReady && !!accessToken,
     staleTime: 5 * 60 * 1000,
   })
+
+  if (isAuthRoute) {
+    return <>{children}</>
+  }
 
   if (!_hasHydrated || !isReady) {
     return (

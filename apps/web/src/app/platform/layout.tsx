@@ -1,9 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth.store'
 import { Loader2 } from 'lucide-react'
+
+const AUTH_ROUTES = [
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/platform/login',
+  '/platform/forgot-password',
+  '/platform/reset-password',
+]
 
 export default function PlatformLayout({
   children,
@@ -11,8 +20,11 @@ export default function PlatformLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { isAuthenticated, _hasHydrated, checkAuth, user } = useAuthStore()
   const [isReady, setIsReady] = useState(false)
+
+  const isAuthRoute = AUTH_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))
 
   useEffect(() => {
     if (_hasHydrated) {
@@ -21,7 +33,7 @@ export default function PlatformLayout({
   }, [_hasHydrated, checkAuth])
 
   useEffect(() => {
-    if (_hasHydrated) {
+    if (_hasHydrated && !isAuthRoute) {
       if (!isAuthenticated) {
         router.replace('/login')
       } else if (!user?.isSuperAdmin) {
@@ -30,7 +42,11 @@ export default function PlatformLayout({
         setIsReady(true)
       }
     }
-  }, [_hasHydrated, isAuthenticated, user, router])
+  }, [_hasHydrated, isAuthenticated, user, router, isAuthRoute])
+
+  if (isAuthRoute) {
+    return <>{children}</>
+  }
 
   if (!_hasHydrated || !isReady) {
     return (

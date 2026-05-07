@@ -11,10 +11,13 @@ const SUBDOMAIN_APP_MAP: Record<string, string> = {
 
 const RESERVED_SUBDOMAINS = new Set(['app', 'reseller', 'admin', 'www', 'api', 'cdn'])
 
-// Paths globaux (login, inscription, etc.) - servis tels quels sur tous les sous-domaines
-// (pas de rewrite vers /restaurant/login, /reseller/login, etc.)
+// Paths d'auth qui ont une page DEDIEE par dashboard.
+// Sur un sous-domaine reserve (app/admin/reseller), /login est rewrite (invisible)
+// vers la page de login segmentee (ex: app./login -> /restaurant/login).
+const DASHBOARD_AUTH_PATHS = ['/login']
+
+// Paths globaux (register, onboarding, etc.) - servis tels quels sur tous les sous-domaines.
 const SHARED_GLOBAL_PATHS = [
-  '/login',
   '/register',
   '/forgot-password',
   '/reset-password',
@@ -24,6 +27,10 @@ const SHARED_GLOBAL_PATHS = [
 
 function isSharedGlobalPath(pathname: string): boolean {
   return SHARED_GLOBAL_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
+}
+
+function isDashboardAuthPath(pathname: string): boolean {
+  return DASHBOARD_AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))
 }
 
 export function middleware(request: NextRequest) {
@@ -46,7 +53,14 @@ export function middleware(request: NextRequest) {
   if (isOurDomain && SUBDOMAIN_APP_MAP[subdomain]) {
     const prefix = SUBDOMAIN_APP_MAP[subdomain]
 
-    // Paths globaux partagés (auth, onboarding) : pas de rewrite, servis depuis la racine
+    // Auth path dedie (ex: /login) -> rewrite invisible vers la page segmentee
+    // app./login -> /restaurant/login, admin./login -> /platform/login, etc.
+    if (isDashboardAuthPath(url.pathname)) {
+      const newPath = `${prefix}${url.pathname}`
+      return NextResponse.rewrite(new URL(`${newPath}${url.search}`, request.url))
+    }
+
+    // Paths globaux partages (register, onboarding, etc.) : pas de rewrite
     if (isSharedGlobalPath(url.pathname)) {
       return NextResponse.next()
     }

@@ -62,7 +62,7 @@ function RestaurantLoginPageContent() {
       
       if (user?.userType === 'RESTAURANT' || user?.userType === 'DRIVER') {
         toast.success('Connexion reussie')
-        router.push('/restaurant')
+        router.push('/')
       } else {
         toast.error('Acces non autorise pour ce type de compte')
         useAuthStore.getState().logout()
@@ -172,8 +172,8 @@ function RestaurantLoginPageContent() {
                 <label className="block text-sm font-medium text-gray-700">
                   Mot de passe
                 </label>
-                <Link 
-                  href="/restaurant/forgot-password" 
+                <Link
+                  href="/forgot-password"
                   className="text-sm font-medium"
                   style={{ color: primaryColor }}
                 >
