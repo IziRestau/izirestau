@@ -66,11 +66,11 @@ export default function PlatformLoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-[480px] bg-gradient-to-br from-indigo-600 to-indigo-700 flex-col p-10">
+      <div className="hidden lg:flex lg:w-[480px] bg-[#1e2128] flex-col p-10">
         <Logo size="md" theme="dark" />
 
         <div className="flex-1 flex flex-col justify-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-medium text-white mb-6 w-fit">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400 mb-6 w-fit">
             <Shield className="w-3.5 h-3.5" />
             Acces administrateur
           </div>
@@ -78,43 +78,43 @@ export default function PlatformLoginPage() {
           <h2 className="text-3xl font-bold text-white mb-4">
             Console d&apos;administration IziResto
           </h2>
-          <p className="text-indigo-50 mb-10">
+          <p className="text-gray-400 mb-10">
             Pilotez l&apos;ensemble de la plateforme : revendeurs, restaurants, licences, support.
             Toutes les actions sont auditees.
           </p>
 
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
                 <div className="text-white font-medium">Gestion globale</div>
-                <div className="text-sm text-indigo-50/80">Revendeurs, restaurants et utilisateurs</div>
+                <div className="text-sm text-gray-400">Revendeurs, restaurants et utilisateurs</div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <Lock className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                <Lock className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
                 <div className="text-white font-medium">Licences & plans</div>
-                <div className="text-sm text-indigo-50/80">Configuration des offres commerciales</div>
+                <div className="text-sm text-gray-400">Configuration des offres commerciales</div>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                <Activity className="w-6 h-6 text-emerald-400" />
               </div>
               <div>
                 <div className="text-white font-medium">Audit & supervision</div>
-                <div className="text-sm text-indigo-50/80">Suivi en temps reel de la plateforme</div>
+                <div className="text-sm text-gray-400">Suivi en temps reel de la plateforme</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="text-indigo-100/70 text-sm">
+        <div className="text-gray-500 text-sm">
           2024 IziResto. Tous droits reserves.
         </div>
       </div>
@@ -126,7 +126,7 @@ export default function PlatformLoginPage() {
           </div>
 
           <div className="mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-xs font-medium text-indigo-700 mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-xs font-medium text-emerald-700 mb-4">
               <Shield className="w-3.5 h-3.5" />
               Administration
             </div>
@@ -146,7 +146,7 @@ export default function PlatformLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="admin@iziresto.com"
-                className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -155,7 +155,7 @@ export default function PlatformLoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Mot de passe
                 </label>
-                <Link href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                <Link href="/forgot-password" className="text-sm text-emerald-500 hover:text-emerald-600 font-medium">
                   Oublie ?
                 </Link>
               </div>
@@ -167,7 +167,7 @@ export default function PlatformLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Mot de passe administrateur"
-                  className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-sm pr-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  className="w-full h-12 px-4 bg-white border border-gray-200 rounded-xl text-sm pr-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
                 <button
                   type="button"
@@ -182,7 +182,7 @@ export default function PlatformLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Connexion en cours...' : 'Acceder a la console'}
             </button>
